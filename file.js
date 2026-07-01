@@ -1,8 +1,10 @@
+#!/usr/bin/env node
+
 /**
  * ============================================================
  * A.L.S — Advanced Local Storage
  * File: file.js
- * Description: JSON file database operations
+ * Description: Pure JSON database operations
  * ============================================================
  */
 
@@ -11,8 +13,9 @@ const path = require('path');
 const crypto = require('crypto');
 
 // ============================================================
-// PATHS
+// CONSTANTS & PATHS
 // ============================================================
+
 const DB_PATH = path.join(__dirname, 'database');
 const SYSTEM_PATH = path.join(DB_PATH, 'system');
 const USERS_PATH = path.join(DB_PATH, 'users');
@@ -25,11 +28,11 @@ const CONFIG_FILE = path.join(SYSTEM_PATH, 'config.json');
 const SESSIONS_FILE = path.join(SYSTEM_PATH, 'sessions.json');
 const USERS_FILE = path.join(USERS_PATH, 'users.json');
 const MEGAVERSES_INDEX = path.join(MEGAVERSES_PATH, '_index.json');
-const ACTIVITY_FILE = path.join(SYSTEMDATA_PATH, 'activity.log.json');
-const OTP_FILE = path.join(SYSTEMDATA_PATH, 'otp.json');
+const ACTIVITY_LOG = path.join(SYSTEMDATA_PATH, 'activity.log.json');
+const OTP_STORE = path.join(SYSTEMDATA_PATH, 'otp.store.json');
 
 // ============================================================
-// UTILITY FUNCTIONS
+// HELPER FUNCTIONS
 // ============================================================
 
 /**
@@ -57,11 +60,12 @@ function writeJSON(filePath, data, pretty = true) {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
-        const content = JSON.stringify(data, null, pretty ? 2 : 0);
-        // Write to temp file then rename for atomicity
-        const tempFile = filePath + '.tmp';
-        fs.writeFileSync(tempFile, content, 'utf8');
-        fs.renameSync(tempFile, filePath);
+        
+        const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
+        const tempPath = filePath + '.tmp';
+        
+        fs.writeFileSync(tempPath, content, 'utf8');
+        fs.renameSync(tempPath, filePath);
         return true;
     } catch (error) {
         console.error(`Error writing ${filePath}:`, error.message);
@@ -74,75 +78,73 @@ function writeJSON(filePath, data, pretty = true) {
  */
 function generateId(prefix = '') {
     const timestamp = Date.now().toString(36);
-    const random = crypto.randomBytes(6).toString('hex');
+    const random = crypto.randomBytes(4).toString('hex');
     return `${prefix}${timestamp}_${random}`;
 }
 
 /**
- * Get timestamp for filenames (YYYY-MM-DD-HH-MM-SS-NNNNNNNNN)
+ * Get current timestamp in ISO format
  */
 function getTimestamp() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    const ms = String(now.getMilliseconds()).padStart(3, '0');
-    const ns = String(process.hrtime()[1]).padStart(9, '0');
-    return `${year}-${month}-${day}-${hours}-${minutes}-${seconds}-${ms}${ns}`;
-}
-
-/**
- * Get ISO timestamp
- */
-function getISOTimestamp() {
     return new Date().toISOString();
 }
 
 /**
- * Safe filename for storage
+ * Format timestamp for filenames (YYYY-MM-DD-HH-MM-SS-ms)
  */
-function sanitizeFilename(filename) {
-    return filename.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+function getFileTimestamp() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${String(now.getMilliseconds()).padStart(3, '0')}`;
 }
 
 /**
- * Hash a file (SHA-256)
+ * Calculate file hash (SHA-256)
  */
-function hashFile(filePath) {
+function calculateFileHash(filePath) {
     try {
         const data = fs.readFileSync(filePath);
         return crypto.createHash('sha256').update(data).digest('hex');
     } catch (error) {
-        return crypto.createHash('sha256').update(filePath + Date.now()).digest('hex');
+        return null;
+    }
+}
+
+/**
+ * Get file size in bytes
+ */
+function getFileSize(filePath) {
+    try {
+        const stats = fs.statSync(filePath);
+        return stats.size;
+    } catch (error) {
+        return 0;
     }
 }
 
 // ============================================================
-// SYSTEM INITIALIZATION
+// INITIALIZATION
 // ============================================================
 
 /**
- * Ensure all required system files exist
+ * Ensure all system files exist
  */
 function ensureSystemFiles() {
-    // Ensure directories exist
-    [SYSTEM_PATH, USERS_PATH, MEGAVERSES_PATH, SYSTEMDATA_PATH, LOGS_PATH].forEach(dir => {
+    // Create directories
+    [DB_PATH, SYSTEM_PATH, USERS_PATH, MEGAVERSES_PATH, SYSTEMDATA_PATH, LOGS_PATH].forEach(dir => {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
     });
 
-    // Config file
+    // Config
     if (!fs.existsSync(CONFIG_FILE)) {
         writeJSON(CONFIG_FILE, {
             system_name: 'A.L.S',
             version: '1.0.0',
-            created_at: getISOTimestamp(),
-            admin_email: '',
-            max_file_size: 104857600, // 100 MB
+            created_at: getTimestamp(),
+            admin_email: null,
+            max_file_size: 100 * 1024 * 1024,
             allowed_mime_types: [
                 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
                 'application/pdf',
@@ -157,21 +159,19 @@ function ensureSystemFiles() {
                 'video/mp4', 'video/webm',
                 'audio/mpeg', 'audio/wav'
             ],
-            default_quota: 10 * 1024 * 1024 * 1024, // 10 GB
+            default_quota: 10 * 1024 * 1024 * 1024,
             backup_retention: 100,
             session_timeout_hours: 24,
-            otp_expiry_minutes: 5,
-            maintenance_mode: false,
-            allow_registrations: true
+            otp_expiry_minutes: 5
         });
     }
 
-    // Sessions file
+    // Sessions
     if (!fs.existsSync(SESSIONS_FILE)) {
         writeJSON(SESSIONS_FILE, { sessions: [] });
     }
 
-    // Users file
+    // Users
     if (!fs.existsSync(USERS_FILE)) {
         writeJSON(USERS_FILE, { users: [] });
     }
@@ -182,20 +182,41 @@ function ensureSystemFiles() {
     }
 
     // Activity log
-    if (!fs.existsSync(ACTIVITY_FILE)) {
-        writeJSON(ACTIVITY_FILE, { activities: [] });
+    if (!fs.existsSync(ACTIVITY_LOG)) {
+        writeJSON(ACTIVITY_LOG, { activities: [] });
     }
 
-    // OTP storage
-    if (!fs.existsSync(OTP_FILE)) {
-        writeJSON(OTP_FILE, { otps: [] });
+    // OTP store
+    if (!fs.existsSync(OTP_STORE)) {
+        writeJSON(OTP_STORE, { otps: [] });
     }
 
     return true;
 }
 
 // ============================================================
-// SESSION FUNCTIONS
+// CONFIG OPERATIONS
+// ============================================================
+
+/**
+ * Get system configuration
+ */
+function getSystemConfig() {
+    return readJSON(CONFIG_FILE, {});
+}
+
+/**
+ * Update system configuration
+ */
+function updateSystemConfig(updates) {
+    const config = getSystemConfig();
+    const updated = { ...config, ...updates, updated_at: getTimestamp() };
+    writeJSON(CONFIG_FILE, updated);
+    return updated;
+}
+
+// ============================================================
+// SESSION OPERATIONS
 // ============================================================
 
 /**
@@ -203,16 +224,22 @@ function ensureSystemFiles() {
  */
 function createSession(sessionData) {
     const sessions = readJSON(SESSIONS_FILE, { sessions: [] });
+    
+    // Remove any existing sessions for this user
+    sessions.sessions = sessions.sessions.filter(s => s.user_id !== sessionData.user_id);
+    
+    // Add new session
     sessions.sessions.push({
         token: sessionData.token,
         user_id: sessionData.user_id,
         email: sessionData.email,
         role: sessionData.role || 'user',
-        created_at: getISOTimestamp(),
-        expires_at: sessionData.expires_at
+        created_at: getTimestamp(),
+        expires_at: sessionData.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     });
+    
     writeJSON(SESSIONS_FILE, sessions);
-    return sessionData;
+    return sessions.sessions[sessions.sessions.length - 1];
 }
 
 /**
@@ -234,20 +261,18 @@ function deleteSession(token) {
 }
 
 /**
- * Delete expired sessions
+ * Delete all expired sessions
  */
-function deleteExpiredSessions() {
+function cleanExpiredSessions() {
     const sessions = readJSON(SESSIONS_FILE, { sessions: [] });
     const now = new Date();
-    sessions.sessions = sessions.sessions.filter(s => {
-        return s.expires_at && new Date(s.expires_at) > now;
-    });
+    sessions.sessions = sessions.sessions.filter(s => new Date(s.expires_at) > now);
     writeJSON(SESSIONS_FILE, sessions);
     return sessions.sessions.length;
 }
 
 // ============================================================
-// USER FUNCTIONS
+// USER OPERATIONS
 // ============================================================
 
 /**
@@ -255,7 +280,7 @@ function deleteExpiredSessions() {
  */
 function getAllUsers() {
     const data = readJSON(USERS_FILE, { users: [] });
-    return data.users;
+    return data.users || [];
 }
 
 /**
@@ -287,30 +312,43 @@ function getUserByApiKey(apiKey) {
  */
 function createUser(userData) {
     const users = getAllUsers();
-
-    // Check if email already exists
+    
+    // Check if user already exists
     if (users.find(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-        throw new Error('User with this email already exists');
+        throw new Error('User already exists');
     }
-
+    
     const newUser = {
-        id: generateId('u'),
+        id: generateId('u_'),
         email: userData.email.toLowerCase(),
         username: userData.username || userData.email.split('@')[0],
         role: userData.role || 'user',
-        api_key: 'als_' + crypto.randomBytes(20).toString('hex'),
-        created_at: getISOTimestamp(),
+        api_key: 'als_' + crypto.randomBytes(24).toString('hex'),
+        created_at: getTimestamp(),
         last_login: null,
-        storage_quota: userData.storage_quota || 10 * 1024 * 1024 * 1024,
+        storage_quota: userData.storage_quota || (10 * 1024 * 1024 * 1024),
         storage_used: 0,
-        settings: userData.settings || {},
-        megaverses: []
+        settings: userData.settings || {
+            theme: 'dark',
+            notifications: true
+        }
     };
-
-    const allUsers = getAllUsers();
-    allUsers.push(newUser);
-    writeJSON(USERS_FILE, { users: allUsers });
-
+    
+    users.push(newUser);
+    writeJSON(USERS_FILE, { users });
+    
+    // Create user's megaverse directory
+    const userMegaversePath = path.join(MEGAVERSES_PATH, newUser.id);
+    if (!fs.existsSync(userMegaversePath)) {
+        fs.mkdirSync(userMegaversePath, { recursive: true });
+    }
+    
+    // Create user's megaverse index
+    const userIndexPath = path.join(userMegaversePath, '_index.json');
+    if (!fs.existsSync(userIndexPath)) {
+        writeJSON(userIndexPath, { megaverses: [] });
+    }
+    
     return newUser;
 }
 
@@ -320,37 +358,26 @@ function createUser(userData) {
 function updateUser(userId, updates) {
     const users = getAllUsers();
     const index = users.findIndex(u => u.id === userId);
+    
     if (index === -1) {
         throw new Error('User not found');
     }
-
-    users[index] = { ...users[index], ...updates };
-    writeJSON(USERS_FILE, { users: users });
+    
+    // Prevent updating certain fields
+    delete updates.id;
+    delete updates.created_at;
+    delete updates.email;
+    
+    users[index] = { ...users[index], ...updates, updated_at: getTimestamp() };
+    writeJSON(USERS_FILE, { users });
     return users[index];
-}
-
-/**
- * Update user's last login
- */
-function updateUserLastLogin(userId) {
-    return updateUser(userId, { last_login: getISOTimestamp() });
-}
-
-/**
- * Update user's storage used
- */
-function updateUserStorage(userId, delta) {
-    const user = getUserById(userId);
-    if (!user) throw new Error('User not found');
-    const newUsed = Math.max(0, user.storage_used + delta);
-    return updateUser(userId, { storage_used: newUsed });
 }
 
 /**
  * Update user role
  */
 function updateUserRole(userId, role) {
-    return updateUser(userId, { role: role });
+    return updateUser(userId, { role });
 }
 
 /**
@@ -361,100 +388,197 @@ function updateUserQuota(userId, quota) {
 }
 
 /**
- * Add megaverse to user's list
+ * Update user storage usage
  */
-function addUserMegaverse(userId, megaverseId, megaverseName) {
+function updateUserStorage(userId, delta) {
     const user = getUserById(userId);
-    if (!user) throw new Error('User not found');
-
-    if (!user.megaverses) {
-        user.megaverses = [];
+    if (!user) {
+        throw new Error('User not found');
     }
-
-    if (!user.megaverses.find(m => m.id === megaverseId)) {
-        user.megaverses.push({
-            id: megaverseId,
-            name: megaverseName,
-            added_at: getISOTimestamp()
-        });
-        updateUser(userId, { megaverses: user.megaverses });
-    }
-    return user;
+    
+    const newStorage = Math.max(0, (user.storage_used || 0) + delta);
+    return updateUser(userId, { storage_used: newStorage });
 }
 
 /**
- * Delete user and all their data
+ * Update user last login
+ */
+function updateUserLastLogin(userId) {
+    return updateUser(userId, { last_login: getTimestamp() });
+}
+
+/**
+ * Delete user (and all their data)
  */
 function deleteUser(userId) {
-    const user = getUserById(userId);
-    if (!user) throw new Error('User not found');
-
-    // Delete all user's megaverses
-    const megaverses = getUserMegaverses(userId);
-    for (const mega of megaverses) {
-        deleteMegaverse(mega.id);
-    }
-
-    // Remove user from users list
     const users = getAllUsers();
-    users.users = users.users.filter(u => u.id !== userId);
-    writeJSON(USERS_FILE, { users: users });
-
-    // Delete user's directory
-    const userDir = path.join(MEGAVERSES_PATH, userId);
-    if (fs.existsSync(userDir)) {
-        fs.rmSync(userDir, { recursive: true, force: true });
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) {
+        throw new Error('User not found');
     }
-
+    
+    // Delete user's megaverse directory
+    const userMegaversePath = path.join(MEGAVERSES_PATH, userId);
+    if (fs.existsSync(userMegaversePath)) {
+        fs.rmSync(userMegaversePath, { recursive: true, force: true });
+    }
+    
+    // Delete user from users list
+    const updatedUsers = users.filter(u => u.id !== userId);
+    writeJSON(USERS_FILE, { users: updatedUsers });
+    
+    // Delete user sessions
+    const sessions = readJSON(SESSIONS_FILE, { sessions: [] });
+    sessions.sessions = sessions.sessions.filter(s => s.user_id !== userId);
+    writeJSON(SESSIONS_FILE, sessions);
+    
     return true;
 }
 
 /**
- * Get all users with storage stats (admin)
- */
-function getAllUsersWithStats() {
-    const users = getAllUsers();
-    const result = [];
-
-    for (const user of users) {
-        const stats = getUserStorageStats(user.id);
-        result.push({
-            ...user,
-            file_count: stats.file_count || 0,
-            storage_used: stats.total_size || 0,
-            megaverse_count: stats.megaverse_count || 0
-        });
-    }
-
-    return result;
-}
-
-/**
- * Get admin users
+ * Get all admin users
  */
 function getAdminUsers() {
     const users = getAllUsers();
     return users.filter(u => u.role === 'admin');
 }
 
+/**
+ * Get user storage stats
+ */
+function getUserStorageStats(userId) {
+    const megaverses = getUserMegaverses(userId);
+    let totalSize = 0;
+    let fileCount = 0;
+    
+    for (const mega of megaverses) {
+        const files = getMegaverseFiles(userId, mega.id);
+        for (const file of files) {
+            totalSize += file.file_size || 0;
+            fileCount++;
+        }
+    }
+    
+    return {
+        total_size: totalSize,
+        file_count: fileCount,
+        megaverse_count: megaverses.length
+    };
+}
+
+/**
+ * Get all users with stats (for admin)
+ */
+function getAllUsersWithStats() {
+    const users = getAllUsers();
+    
+    return users.map(user => {
+        const stats = getUserStorageStats(user.id);
+        return {
+            ...user,
+            stats
+        };
+    });
+}
+
 // ============================================================
-// MEGAVERSE FUNCTIONS
+// OTP OPERATIONS
 // ============================================================
 
 /**
- * Get megaverse by ID
+ * Store OTP for email
  */
-function getMegaverse(megaverseId) {
-    const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    return index.megaverses.find(m => m.id === megaverseId) || null;
+function storeOTP(email, otp) {
+    const data = readJSON(OTP_STORE, { otps: [] });
+    
+    // Remove existing OTPs for this email
+    data.otps = data.otps.filter(o => o.email !== email);
+    
+    // Add new OTP
+    data.otps.push({
+        email: email.toLowerCase(),
+        otp: otp,
+        created_at: getTimestamp(),
+        expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString()
+    });
+    
+    writeJSON(OTP_STORE, data);
+    return true;
 }
+
+/**
+ * Verify OTP
+ */
+function verifyOTP(email, otp) {
+    const data = readJSON(OTP_STORE, { otps: [] });
+    const record = data.otps.find(o => 
+        o.email === email.toLowerCase() && 
+        o.otp === otp &&
+        new Date(o.expires_at) > new Date()
+    );
+    
+    if (!record) {
+        return false;
+    }
+    
+    // Remove used OTP
+    data.otps = data.otps.filter(o => o.email !== email || o.otp !== otp);
+    writeJSON(OTP_STORE, data);
+    
+    return true;
+}
+
+/**
+ * Clean expired OTPs
+ */
+function cleanExpiredOTPs() {
+    const data = readJSON(OTP_STORE, { otps: [] });
+    const now = new Date();
+    data.otps = data.otps.filter(o => new Date(o.expires_at) > now);
+    writeJSON(OTP_STORE, data);
+    return data.otps.length;
+}
+
+// ============================================================
+// MEGAVERSE OPERATIONS
+// ============================================================
 
 /**
  * Get user's megaverses
  */
 function getUserMegaverses(userId) {
-    const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    return index.megaverses.filter(m => m.user_id === userId);
+    const userMegaversePath = path.join(MEGAVERSES_PATH, userId);
+    const indexFile = path.join(userMegaversePath, '_index.json');
+    
+    if (!fs.existsSync(indexFile)) {
+        return [];
+    }
+    
+    const data = readJSON(indexFile, { megaverses: [] });
+    return data.megaverses || [];
+}
+
+/**
+ * Get megaverse by ID
+ */
+function getMegaverse(megaverseId, userId = null) {
+    if (userId) {
+        const megaverses = getUserMegaverses(userId);
+        return megaverses.find(m => m.id === megaverseId) || null;
+    }
+    
+    // Search all users
+    const users = getAllUsers();
+    for (const user of users) {
+        const megaverses = getUserMegaverses(user.id);
+        const found = megaverses.find(m => m.id === megaverseId);
+        if (found) {
+            return { ...found, user_id: user.id };
+        }
+    }
+    
+    return null;
 }
 
 /**
@@ -462,160 +586,184 @@ function getUserMegaverses(userId) {
  */
 function createMegaverse(data) {
     const { user_id, name, description } = data;
-
-    // Create megaverse directory
-    const megaPath = path.join(MEGAVERSES_PATH, user_id, name);
-    if (fs.existsSync(megaPath)) {
-        throw new Error('Megaverse already exists');
+    
+    if (!user_id || !name) {
+        throw new Error('User ID and name required');
     }
-
-    // Create directory structure
-    const liveFile = path.join(megaPath, 'live', 'file');
-    const liveJson = path.join(megaPath, 'live', 'json');
-    const backupFile = path.join(megaPath, 'backup', 'file');
-    const backupJson = path.join(megaPath, 'backup', 'json');
-
-    [liveFile, liveJson, backupFile, backupJson].forEach(dir => {
-        fs.mkdirSync(dir, { recursive: true });
-    });
-
-    // Create metadata
-    const newMegaverse = {
-        id: generateId('m'),
-        user_id: user_id,
-        name: name,
+    
+    const userMegaversePath = path.join(MEGAVERSES_PATH, user_id);
+    const indexFile = path.join(userMegaversePath, '_index.json');
+    
+    // Ensure directory exists
+    if (!fs.existsSync(userMegaversePath)) {
+        fs.mkdirSync(userMegaversePath, { recursive: true });
+    }
+    
+    // Load existing megaverses
+    const index = readJSON(indexFile, { megaverses: [] });
+    
+    // Check for duplicate name
+    if (index.megaverses.find(m => m.name === name)) {
+        throw new Error('Megaverse with this name already exists');
+    }
+    
+    // Create new megaverse
+    const megaverse = {
+        id: generateId('m_'),
+        name: name.trim(),
         description: description || '',
-        created_at: getISOTimestamp(),
-        updated_at: getISOTimestamp(),
+        created_at: getTimestamp(),
+        updated_at: getTimestamp(),
         file_count: 0,
-        total_size: 0,
-        path: megaPath
+        total_size: 0
     };
-
-    // Save meta
-    writeJSON(path.join(megaPath, '_meta.json'), newMegaverse);
-
-    // Save files index
-    writeJSON(path.join(megaPath, '_files.json'), { files: [] });
-
-    // Add to global index
-    const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    index.megaverses.push({
-        id: newMegaverse.id,
-        user_id: user_id,
-        name: name,
-        description: description || '',
-        created_at: newMegaverse.created_at,
-        file_count: 0,
-        total_size: 0,
-        path: megaPath
-    });
-    writeJSON(MEGAVERSES_INDEX, index);
-
-    // Add to user's megaverse list
-    addUserMegaverse(user_id, newMegaverse.id, name);
-
-    return newMegaverse;
+    
+    index.megaverses.push(megaverse);
+    writeJSON(indexFile, index);
+    
+    // Create megaverse directory structure
+    const megaPath = path.join(userMegaversePath, megaverse.id);
+    fs.mkdirSync(path.join(megaPath, 'live', 'file'), { recursive: true });
+    fs.mkdirSync(path.join(megaPath, 'live', 'json'), { recursive: true });
+    fs.mkdirSync(path.join(megaPath, 'backup', 'file'), { recursive: true });
+    fs.mkdirSync(path.join(megaPath, 'backup', 'json'), { recursive: true });
+    
+    // Create files index
+    const filesIndexFile = path.join(megaPath, '_files.json');
+    writeJSON(filesIndexFile, { files: [] });
+    
+    // Create meta file
+    const metaFile = path.join(megaPath, '_meta.json');
+    writeJSON(metaFile, megaverse);
+    
+    return megaverse;
 }
 
 /**
  * Delete megaverse
  */
-function deleteMegaverse(megaverseId) {
-    const mega = getMegaverse(megaverseId);
-    if (!mega) throw new Error('Megaverse not found');
-
-    // Delete all files in this megaverse
-    const files = getFiles(megaverseId);
-    for (const file of files) {
-        // Delete physical file
-        if (fs.existsSync(file.storage_path)) {
-            fs.unlinkSync(file.storage_path);
-        }
-        // Delete backups
-        const versions = getFileVersions(file.id);
-        for (const version of versions) {
-            if (fs.existsSync(version.storage_path)) {
-                fs.unlinkSync(version.storage_path);
+function deleteMegaverse(megaverseId, userId = null) {
+    if (!userId) {
+        // Find which user owns this megaverse
+        const users = getAllUsers();
+        for (const user of users) {
+            const megaverses = getUserMegaverses(user.id);
+            if (megaverses.find(m => m.id === megaverseId)) {
+                userId = user.id;
+                break;
             }
         }
     }
-
+    
+    if (!userId) {
+        throw new Error('Megaverse not found');
+    }
+    
+    const userMegaversePath = path.join(MEGAVERSES_PATH, userId);
+    const indexFile = path.join(userMegaversePath, '_index.json');
+    const index = readJSON(indexFile, { megaverses: [] });
+    
+    const megaverseIndex = index.megaverses.findIndex(m => m.id === megaverseId);
+    if (megaverseIndex === -1) {
+        throw new Error('Megaverse not found');
+    }
+    
     // Delete megaverse directory
-    if (fs.existsSync(mega.path)) {
-        fs.rmSync(mega.path, { recursive: true, force: true });
+    const megaPath = path.join(userMegaversePath, megaverseId);
+    if (fs.existsSync(megaPath)) {
+        fs.rmSync(megaPath, { recursive: true, force: true });
     }
+    
+    // Remove from index
+    index.megaverses.splice(megaverseIndex, 1);
+    writeJSON(indexFile, index);
+    
+    return true;
+}
 
-    // Remove from global index
-    const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    index.megaverses = index.megaverses.filter(m => m.id !== megaverseId);
-    writeJSON(MEGAVERSES_INDEX, index);
-
-    // Remove from user's megaverse list
-    const user = getUserById(mega.user_id);
-    if (user && user.megaverses) {
-        user.megaverses = user.megaverses.filter(m => m.id !== megaverseId);
-        updateUser(user.id, { megaverses: user.megaverses });
+/**
+ * Update megaverse stats (file count, total size)
+ */
+function updateMegaverseStats(megaverseId, userId, fileSizeDelta, fileCountDelta = 0) {
+    const userMegaversePath = path.join(MEGAVERSES_PATH, userId);
+    const indexFile = path.join(userMegaversePath, '_index.json');
+    const index = readJSON(indexFile, { megaverses: [] });
+    
+    const mega = index.megaverses.find(m => m.id === megaverseId);
+    if (!mega) {
+        return false;
     }
-
+    
+    mega.file_count = Math.max(0, (mega.file_count || 0) + fileCountDelta);
+    mega.total_size = Math.max(0, (mega.total_size || 0) + fileSizeDelta);
+    mega.updated_at = getTimestamp();
+    
+    writeJSON(indexFile, index);
     return true;
 }
 
 // ============================================================
-// FILE FUNCTIONS
+// FILE OPERATIONS
 // ============================================================
 
 /**
  * Get files in a megaverse
  */
-function getFiles(megaverseId, options = {}) {
-    const mega = getMegaverse(megaverseId);
-    if (!mega) throw new Error('Megaverse not found');
-
-    const filesPath = path.join(mega.path, '_files.json');
-    const data = readJSON(filesPath, { files: [] });
-    let files = data.files;
-
+function getMegaverseFiles(userId, megaverseId, options = {}) {
+    const { search, limit, offset } = options;
+    
+    const userMegaversePath = path.join(MEGAVERSES_PATH, userId);
+    const megaPath = path.join(userMegaversePath, megaverseId);
+    const filesIndexFile = path.join(megaPath, '_files.json');
+    
+    if (!fs.existsSync(filesIndexFile)) {
+        return [];
+    }
+    
+    const data = readJSON(filesIndexFile, { files: [] });
+    let files = data.files || [];
+    
     // Filter by search
-    if (options.search) {
-        const search = options.search.toLowerCase();
-        files = files.filter(f =>
-            f.filename.toLowerCase().includes(search) ||
-            (f.metadata && f.metadata.tags && f.metadata.tags.some(t => t.toLowerCase().includes(search)))
+    if (search) {
+        const query = search.toLowerCase();
+        files = files.filter(f => 
+            f.filename.toLowerCase().includes(query) ||
+            (f.metadata && JSON.stringify(f.metadata).toLowerCase().includes(query))
         );
     }
-
-    // Sort by uploaded date (newest first)
-    files = files.sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at));
-
-    // Limit and offset
-    if (options.limit) {
-        const offset = options.offset || 0;
-        files = files.slice(offset, offset + options.limit);
-    }
-
-    return files;
+    
+    // Sort by uploaded_at (newest first)
+    files.sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at));
+    
+    // Pagination
+    const start = offset || 0;
+    const end = limit ? start + limit : undefined;
+    
+    return files.slice(start, end);
 }
 
 /**
- * Get a single file by ID
+ * Get file by ID
  */
 function getFile(fileId) {
-    // Search all megaverses
-    const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    for (const mega of index.megaverses) {
-        const filesPath = path.join(mega.path, '_files.json');
-        const data = readJSON(filesPath, { files: [] });
-        const file = data.files.find(f => f.id === fileId);
-        if (file) {
-            return {
-                ...file,
-                user_id: mega.user_id,
-                megaverse_id: mega.id,
-                megaverse_name: mega.name
-            };
+    const users = getAllUsers();
+    
+    for (const user of users) {
+        const megaverses = getUserMegaverses(user.id);
+        for (const mega of megaverses) {
+            const files = getMegaverseFiles(user.id, mega.id);
+            const file = files.find(f => f.id === fileId);
+            if (file) {
+                return {
+                    ...file,
+                    user_id: user.id,
+                    megaverse_id: mega.id,
+                    megaverse_name: mega.name
+                };
+            }
         }
     }
+    
     return null;
 }
 
@@ -624,192 +772,294 @@ function getFile(fileId) {
  */
 function saveFile(fileData) {
     const { user_id, megaverse_id, filename, storage_path, file_size, file_hash, mime_type, metadata } = fileData;
-
-    const mega = getMegaverse(megaverse_id);
-    if (!mega) throw new Error('Megaverse not found');
-
-    if (mega.user_id !== user_id) {
-        throw new Error('User does not own this megaverse');
+    
+    if (!user_id || !megaverse_id || !filename || !storage_path) {
+        throw new Error('Missing required fields');
     }
-
-    const filesPath = path.join(mega.path, '_files.json');
-    const data = readJSON(filesPath, { files: [] });
-
-    // Check if file already exists
-    const existing = data.files.find(f => f.filename === filename);
-    let fileRecord;
-
-    if (existing) {
-        // Update existing file - create backup
-        const backupDir = path.join(mega.path, 'backup', 'file', sanitizeFilename(filename));
-        const timestamp = getTimestamp();
-        const backupPath = path.join(backupDir, `${timestamp}_${filename}`);
-
-        // Create backup directory
-        if (!fs.existsSync(backupDir)) {
-            fs.mkdirSync(backupDir, { recursive: true });
-        }
-
-        // Copy file to backup
-        if (fs.existsSync(existing.storage_path)) {
-            fs.copyFileSync(existing.storage_path, backupPath);
-
-            // Also backup metadata
-            const metaBackupDir = path.join(mega.path, 'backup', 'json', sanitizeFilename(filename));
-            if (!fs.existsSync(metaBackupDir)) {
-                fs.mkdirSync(metaBackupDir, { recursive: true });
-            }
-            const metaBackupPath = path.join(metaBackupDir, `${timestamp}.json`);
-            writeJSON(metaBackupPath, {
-                metadata: existing.metadata || {},
-                version: existing.version,
-                size: existing.size,
-                hash: existing.hash
+    
+    const userMegaversePath = path.join(MEGAVERSES_PATH, user_id);
+    const megaPath = path.join(userMegaversePath, megaverse_id);
+    const filesIndexFile = path.join(megaPath, '_files.json');
+    
+    // Load existing files
+    const data = readJSON(filesIndexFile, { files: [] });
+    
+    // Check if file with same name exists
+    const existingIndex = data.files.findIndex(f => f.filename === filename);
+    
+    let file;
+    let isUpdate = false;
+    
+    if (existingIndex !== -1) {
+        // Update existing file
+        isUpdate = true;
+        const existing = data.files[existingIndex];
+        
+        // Backup current file
+        const backupFile = backupExistingFile(user_id, megaverse_id, existing);
+        
+        // Update file record
+        file = {
+            ...existing,
+            storage_path: storage_path,
+            file_size: file_size,
+            file_hash: file_hash,
+            mime_type: mime_type,
+            version: (existing.version || 0) + 1,
+            updated_at: getTimestamp(),
+            metadata: metadata || existing.metadata || {}
+        };
+        
+        // Add to backup history
+        if (backupFile) {
+            if (!file.backups) file.backups = [];
+            file.backups.push({
+                version: existing.version || 1,
+                path: backupFile,
+                created_at: getTimestamp()
             });
-
-            // Update file record
-            existing.version = (existing.version || 1) + 1;
-            existing.size = file_size;
-            existing.hash = file_hash || hashFile(storage_path);
-            existing.mime_type = mime_type;
-            existing.storage_path = storage_path;
-            existing.updated_at = getISOTimestamp();
-            existing.metadata = { ...(existing.metadata || {}), ...(metadata || {}) };
-
-            // Add backup reference
-            if (!existing.backups) existing.backups = [];
-            existing.backups.push({
-                version: existing.version - 1,
-                path: backupPath,
-                created_at: getISOTimestamp()
-            });
-
-            fileRecord = existing;
-        } else {
-            // File doesn't exist on disk, treat as new
-            fileRecord = createNewFileRecord();
         }
+        
+        data.files[existingIndex] = file;
+        
+        // Update storage usage (delta)
+        const delta = file_size - (existing.file_size || 0);
+        updateUserStorage(user_id, delta);
+        updateMegaverseStats(megaverse_id, user_id, delta);
+        
     } else {
         // New file
-        fileRecord = createNewFileRecord();
-    }
-
-    function createNewFileRecord() {
-        const newFile = {
-            id: generateId('f'),
+        file = {
+            id: generateId('f_'),
             filename: filename,
             storage_path: storage_path,
-            size: file_size,
-            hash: file_hash || hashFile(storage_path),
+            file_size: file_size,
+            file_hash: file_hash,
             mime_type: mime_type,
             version: 1,
-            uploaded_at: getISOTimestamp(),
-            updated_at: getISOTimestamp(),
+            uploaded_at: getTimestamp(),
+            updated_at: getTimestamp(),
             metadata: metadata || {},
             backups: []
         };
-
-        data.files.push(newFile);
-
-        // Update megaverse stats
-        mega.file_count = (mega.file_count || 0) + 1;
-        mega.total_size = (mega.total_size || 0) + file_size;
-        mega.updated_at = getISOTimestamp();
-
-        // Update global index
-        const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-        const idx = index.megaverses.findIndex(m => m.id === megaverse_id);
-        if (idx !== -1) {
-            index.megaverses[idx].file_count = mega.file_count;
-            index.megaverses[idx].total_size = mega.total_size;
-            index.megaverses[idx].updated_at = mega.updated_at;
-            writeJSON(MEGAVERSES_INDEX, index);
-        }
-
-        // Update user storage
+        
+        data.files.push(file);
+        
+        // Update storage usage
         updateUserStorage(user_id, file_size);
-
-        return newFile;
+        updateMegaverseStats(megaverse_id, user_id, file_size, 1);
     }
-
-    // Save files index
-    writeJSON(filesPath, data);
-
-    // Update megaverse meta
-    writeJSON(path.join(mega.path, '_meta.json'), mega);
-
-    return {
-        ...fileRecord,
-        user_id: user_id,
-        megaverse_id: megaverse_id
-    };
+    
+    writeJSON(filesIndexFile, data);
+    return file;
 }
 
 /**
- * Soft delete a file
+ * Backup existing file before update
+ */
+function backupExistingFile(userId, megaverseId, file) {
+    const userMegaversePath = path.join(MEGAVERSES_PATH, userId);
+    const megaPath = path.join(userMegaversePath, megaverseId);
+    const backupDir = path.join(megaPath, 'backup', 'file');
+    const timestamp = getFileTimestamp();
+    
+    // Create backup directory
+    if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+    }
+    
+    // Backup original file
+    const originalPath = file.storage_path;
+    if (fs.existsSync(originalPath)) {
+        const ext = path.extname(file.filename);
+        const name = path.basename(file.filename, ext);
+        const backupPath = path.join(backupDir, `${name}_${timestamp}${ext}`);
+        fs.copyFileSync(originalPath, backupPath);
+        return backupPath;
+    }
+    
+    return null;
+}
+
+/**
+ * Get file versions
+ */
+function getFileVersions(fileId) {
+    const file = getFile(fileId);
+    if (!file) {
+        return [];
+    }
+    
+    const versions = [
+        {
+            version: file.version,
+            path: file.storage_path,
+            created_at: file.updated_at || file.uploaded_at,
+            is_current: true
+        }
+    ];
+    
+    if (file.backups) {
+        const backupVersions = file.backups.map(b => ({
+            version: b.version,
+            path: b.path,
+            created_at: b.created_at,
+            is_current: false
+        }));
+        versions.push(...backupVersions);
+    }
+    
+    return versions.sort((a, b) => b.version - a.version);
+}
+
+/**
+ * Restore file version
+ */
+function restoreFileVersion(fileId, versionNumber) {
+    const file = getFile(fileId);
+    if (!file) {
+        throw new Error('File not found');
+    }
+    
+    // Find version
+    let versionPath = null;
+    let versionDate = null;
+    
+    if (file.version === versionNumber) {
+        // Restore current version (do nothing)
+        return file;
+    }
+    
+    if (file.backups) {
+        const backup = file.backups.find(b => b.version === versionNumber);
+        if (backup) {
+            versionPath = backup.path;
+            versionDate = backup.created_at;
+        }
+    }
+    
+    if (!versionPath || !fs.existsSync(versionPath)) {
+        throw new Error('Version not found');
+    }
+    
+    // Backup current version
+    const user_id = file.user_id;
+    const megaverse_id = file.megaverse_id;
+    const backupPath = backupExistingFile(user_id, megaverse_id, file);
+    
+    // Restore version
+    const ext = path.extname(file.filename);
+    const storageDir = path.dirname(file.storage_path);
+    const restoredPath = path.join(storageDir, `${path.basename(file.filename, ext)}_restored_${getFileTimestamp()}${ext}`);
+    
+    fs.copyFileSync(versionPath, restoredPath);
+    
+    // Update file record
+    const oldSize = file.file_size;
+    const newSize = getFileSize(restoredPath);
+    const newHash = calculateFileHash(restoredPath);
+    
+    const userMegaversePath = path.join(MEGAVERSES_PATH, user_id);
+    const megaPath = path.join(userMegaversePath, megaverse_id);
+    const filesIndexFile = path.join(megaPath, '_files.json');
+    const data = readJSON(filesIndexFile, { files: [] });
+    
+    const fileIndex = data.files.findIndex(f => f.id === fileId);
+    if (fileIndex === -1) {
+        throw new Error('File not found in index');
+    }
+    
+    // Update file
+    const updatedFile = {
+        ...data.files[fileIndex],
+        storage_path: restoredPath,
+        file_size: newSize,
+        file_hash: newHash,
+        version: (data.files[fileIndex].version || 0) + 1,
+        updated_at: getTimestamp()
+    };
+    
+    // Add backup entry for the version being restored from
+    if (!updatedFile.backups) updatedFile.backups = [];
+    updatedFile.backups.push({
+        version: versionNumber,
+        path: versionPath,
+        created_at: versionDate || getTimestamp()
+    });
+    
+    // Add backup entry for current version (if backup was created)
+    if (backupPath) {
+        updatedFile.backups.push({
+            version: updatedFile.version - 1,
+            path: backupPath,
+            created_at: getTimestamp()
+        });
+    }
+    
+    data.files[fileIndex] = updatedFile;
+    writeJSON(filesIndexFile, data);
+    
+    // Update storage usage
+    const delta = newSize - oldSize;
+    updateUserStorage(user_id, delta);
+    updateMegaverseStats(megaverse_id, user_id, delta);
+    
+    return updatedFile;
+}
+
+/**
+ * Soft delete file
  */
 function softDeleteFile(fileId) {
     const file = getFile(fileId);
-    if (!file) throw new Error('File not found');
-
-    const mega = getMegaverse(file.megaverse_id);
-    if (!mega) throw new Error('Megaverse not found');
-
-    const filesPath = path.join(mega.path, '_files.json');
-    const data = readJSON(filesPath, { files: [] });
-
-    const index = data.files.findIndex(f => f.id === fileId);
-    if (index === -1) throw new Error('File not found in megaverse');
-
-    // Mark as deleted
-    data.files[index].deleted_at = getISOTimestamp();
-    data.files[index].is_deleted = true;
-
-    // Update megaverse stats
-    mega.file_count = Math.max(0, (mega.file_count || 0) - 1);
-    mega.total_size = Math.max(0, (mega.total_size || 0) - file.size);
-    mega.updated_at = getISOTimestamp();
-
-    writeJSON(filesPath, data);
-
-    // Update global index
-    const globalIndex = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    const idx = globalIndex.megaverses.findIndex(m => m.id === file.megaverse_id);
-    if (idx !== -1) {
-        globalIndex.megaverses[idx].file_count = mega.file_count;
-        globalIndex.megaverses[idx].total_size = mega.total_size;
-        globalIndex.megaverses[idx].updated_at = mega.updated_at;
-        writeJSON(MEGAVERSES_INDEX, globalIndex);
+    if (!file) {
+        throw new Error('File not found');
     }
-
-    // Update user storage
-    updateUserStorage(file.user_id, -file.size);
-
+    
+    const user_id = file.user_id;
+    const megaverse_id = file.megaverse_id;
+    
+    const userMegaversePath = path.join(MEGAVERSES_PATH, user_id);
+    const megaPath = path.join(userMegaversePath, megaverse_id);
+    const filesIndexFile = path.join(megaPath, '_files.json');
+    const data = readJSON(filesIndexFile, { files: [] });
+    
+    const fileIndex = data.files.findIndex(f => f.id === fileId);
+    if (fileIndex === -1) {
+        throw new Error('File not found in index');
+    }
+    
+    // Mark as deleted
+    data.files[fileIndex].deleted = true;
+    data.files[fileIndex].deleted_at = getTimestamp();
+    
+    writeJSON(filesIndexFile, data);
+    
+    // Update storage usage (subtract file size)
+    updateUserStorage(user_id, -file.file_size);
+    updateMegaverseStats(megaverse_id, user_id, -file.file_size, -1);
+    
     return true;
 }
 
 /**
- * Permanent delete a file
+ * Permanent delete file
  */
 function permanentDeleteFile(fileId) {
     const file = getFile(fileId);
-    if (!file) throw new Error('File not found');
-
-    const mega = getMegaverse(file.megaverse_id);
-    if (!mega) throw new Error('Megaverse not found');
-
-    const filesPath = path.join(mega.path, '_files.json');
-    const data = readJSON(filesPath, { files: [] });
-
-    // Remove file from index
-    data.files = data.files.filter(f => f.id !== fileId);
-
-    // Delete physical file
+    if (!file) {
+        throw new Error('File not found');
+    }
+    
+    const user_id = file.user_id;
+    const megaverse_id = file.megaverse_id;
+    
+    // Delete file from disk
     if (fs.existsSync(file.storage_path)) {
         fs.unlinkSync(file.storage_path);
     }
-
-    // Delete backup files
+    
+    // Delete backups
     if (file.backups) {
         for (const backup of file.backups) {
             if (fs.existsSync(backup.path)) {
@@ -817,429 +1067,274 @@ function permanentDeleteFile(fileId) {
             }
         }
     }
-
-    writeJSON(filesPath, data);
+    
+    // Remove from index
+    const userMegaversePath = path.join(MEGAVERSES_PATH, user_id);
+    const megaPath = path.join(userMegaversePath, megaverse_id);
+    const filesIndexFile = path.join(megaPath, '_files.json');
+    const data = readJSON(filesIndexFile, { files: [] });
+    
+    data.files = data.files.filter(f => f.id !== fileId);
+    writeJSON(filesIndexFile, data);
+    
+    // Update storage usage if not already updated by soft delete
+    // (If soft deleted first, storage already updated)
+    const isSoftDeleted = file.deleted === true;
+    if (!isSoftDeleted) {
+        updateUserStorage(user_id, -file.file_size);
+        updateMegaverseStats(megaverse_id, user_id, -file.file_size, -1);
+    }
+    
     return true;
 }
 
 // ============================================================
-// VERSION FUNCTIONS
+// SEARCH OPERATIONS
 // ============================================================
 
 /**
- * Get file version history
+ * Search files across user's megaverses
  */
-function getFileVersions(fileId) {
-    const file = getFile(fileId);
-    if (!file) throw new Error('File not found');
-
-    return file.backups || [];
-}
-
-/**
- * Restore a file to a specific version
- */
-function restoreFileVersion(fileId, versionNumber) {
-    const file = getFile(fileId);
-    if (!file) throw new Error('File not found');
-
-    const backup = file.backups.find(b => b.version === versionNumber);
-    if (!backup) throw new Error('Version not found');
-
-    if (!fs.existsSync(backup.path)) {
-        throw new Error('Backup file not found on disk');
+function searchFiles(userId, options) {
+    const { query, type, limit } = options;
+    
+    if (!query) {
+        return [];
     }
-
-    const mega = getMegaverse(file.megaverse_id);
-    if (!mega) throw new Error('Megaverse not found');
-
-    const filesPath = path.join(mega.path, '_files.json');
-    const data = readJSON(filesPath, { files: [] });
-
-    const index = data.files.findIndex(f => f.id === fileId);
-    if (index === -1) throw new Error('File not found');
-
-    // Backup current version before restoring
-    const currentFile = data.files[index];
-    const backupDir = path.join(mega.path, 'backup', 'file', sanitizeFilename(currentFile.filename));
-    if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
-    }
-
-    const timestamp = getTimestamp();
-    const currentBackupPath = path.join(backupDir, `${timestamp}_${currentFile.filename}`);
-
-    if (fs.existsSync(currentFile.storage_path)) {
-        fs.copyFileSync(currentFile.storage_path, currentBackupPath);
-
-        if (!currentFile.backups) currentFile.backups = [];
-        currentFile.backups.push({
-            version: currentFile.version,
-            path: currentBackupPath,
-            created_at: getISOTimestamp()
-        });
-    }
-
-    // Restore from backup
-    const restoredFilePath = path.join(mega.path, 'live', 'file', currentFile.filename);
-    fs.copyFileSync(backup.path, restoredFilePath);
-
-    // Update file record
-    currentFile.storage_path = restoredFilePath;
-    currentFile.size = fs.statSync(restoredFilePath).size;
-    currentFile.hash = hashFile(restoredFilePath);
-    currentFile.version = (currentFile.version || 0) + 1;
-    currentFile.updated_at = getISOTimestamp();
-
-    // Get metadata from backup if available
-    const metaBackupPath = path.join(mega.path, 'backup', 'json', sanitizeFilename(currentFile.filename), `${timestamp}.json`);
-    if (fs.existsSync(metaBackupPath)) {
-        const metaData = readJSON(metaBackupPath);
-        if (metaData && metaData.metadata) {
-            currentFile.metadata = { ...currentFile.metadata, ...metaData.metadata };
+    
+    const megaverses = getUserMegaverses(userId);
+    const results = [];
+    const queryLower = query.toLowerCase();
+    
+    for (const mega of megaverses) {
+        const files = getMegaverseFiles(userId, mega.id);
+        
+        for (const file of files) {
+            if (file.deleted) continue;
+            
+            // Search by filename
+            const matchName = file.filename.toLowerCase().includes(queryLower);
+            
+            // Search by metadata
+            let matchMeta = false;
+            if (file.metadata) {
+                const metaStr = JSON.stringify(file.metadata).toLowerCase();
+                matchMeta = metaStr.includes(queryLower);
+            }
+            
+            // Search by type
+            let matchType = true;
+            if (type && file.mime_type) {
+                matchType = file.mime_type.includes(type);
+            }
+            
+            if ((matchName || matchMeta) && matchType) {
+                results.push({
+                    ...file,
+                    megaverse: mega.name,
+                    megaverse_id: mega.id,
+                    match_type: matchName ? 'filename' : 'metadata'
+                });
+            }
         }
     }
-
-    writeJSON(filesPath, data);
-
-    return currentFile;
-}
-
-// ============================================================
-// OTP FUNCTIONS
-// ============================================================
-
-/**
- * Store OTP for email
- */
-function storeOTP(email, otp) {
-    const data = readJSON(OTP_FILE, { otps: [] });
-    const config = readJSON(CONFIG_FILE);
-    const expiryMinutes = config.otp_expiry_minutes || 5;
-
-    // Remove existing OTPs for this email
-    data.otps = data.otps.filter(o => o.email !== email);
-
-    data.otps.push({
-        email: email.toLowerCase(),
-        otp: otp,
-        created_at: getISOTimestamp(),
-        expires_at: new Date(Date.now() + expiryMinutes * 60 * 1000).toISOString(),
-        attempts: 0
+    
+    // Sort by relevance (filename matches first)
+    results.sort((a, b) => {
+        if (a.match_type === 'filename' && b.match_type !== 'filename') return -1;
+        if (b.match_type === 'filename' && a.match_type !== 'filename') return 1;
+        return 0;
     });
+    
+    return results.slice(0, limit || 50);
+}
 
-    writeJSON(OTP_FILE, data);
+// ============================================================
+// ACTIVITY OPERATIONS
+// ============================================================
+
+/**
+ * Log activity
+ */
+function logActivity(activityData) {
+    const data = readJSON(ACTIVITY_LOG, { activities: [] });
+    
+    // Keep only last 10,000 entries to prevent file bloat
+    if (data.activities.length > 10000) {
+        data.activities = data.activities.slice(-9000);
+    }
+    
+    data.activities.push({
+        id: generateId('a_'),
+        timestamp: getTimestamp(),
+        user_id: activityData.user_id || null,
+        user_email: activityData.user_email || 'system',
+        action: activityData.action || 'unknown',
+        details: activityData.details || {}
+    });
+    
+    writeJSON(ACTIVITY_LOG, data);
     return true;
-}
-
-/**
- * Verify OTP
- */
-function verifyOTP(email, otp) {
-    const data = readJSON(OTP_FILE, { otps: [] });
-    const record = data.otps.find(o => o.email === email.toLowerCase());
-
-    if (!record) {
-        return false;
-    }
-
-    // Check expiry
-    if (new Date(record.expires_at) < new Date()) {
-        // Remove expired OTP
-        data.otps = data.otps.filter(o => o.email !== email.toLowerCase());
-        writeJSON(OTP_FILE, data);
-        return false;
-    }
-
-    // Check attempts (max 3)
-    if (record.attempts >= 3) {
-        data.otps = data.otps.filter(o => o.email !== email.toLowerCase());
-        writeJSON(OTP_FILE, data);
-        return false;
-    }
-
-    // Verify OTP
-    if (record.otp === otp) {
-        // Remove OTP on success
-        data.otps = data.otps.filter(o => o.email !== email.toLowerCase());
-        writeJSON(OTP_FILE, data);
-        return true;
-    }
-
-    // Increment attempts
-    record.attempts = (record.attempts || 0) + 1;
-    writeJSON(OTP_FILE, data);
-    return false;
-}
-
-// ============================================================
-// ACTIVITY FUNCTIONS
-// ============================================================
-
-/**
- * Log an activity
- */
-function logActivity(data) {
-    const { user_id, user_email, action, details } = data;
-
-    const activity = {
-        id: generateId('a'),
-        timestamp: getISOTimestamp(),
-        user_id: user_id || null,
-        user_email: user_email || 'system',
-        action: action,
-        details: details || {},
-        ip: data.ip || null,
-        user_agent: data.user_agent || null
-    };
-
-    const activities = readJSON(ACTIVITY_FILE, { activities: [] });
-    activities.activities.push(activity);
-
-    // Keep last 10,000 activities
-    if (activities.activities.length > 10000) {
-        activities.activities = activities.activities.slice(-10000);
-    }
-
-    writeJSON(ACTIVITY_FILE, activities);
-    return activity;
 }
 
 /**
  * Get user activity
  */
 function getUserActivity(userId, options = {}) {
-    const activities = readJSON(ACTIVITY_FILE, { activities: [] });
-    let result = activities.activities.filter(a => a.user_id === userId);
-
-    if (options.limit) {
-        const offset = options.offset || 0;
-        result = result.slice(offset, offset + options.limit);
-    }
-
-    return result;
+    const { limit, offset } = options;
+    const data = readJSON(ACTIVITY_LOG, { activities: [] });
+    
+    let activities = data.activities.filter(a => a.user_id === userId);
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    const start = offset || 0;
+    const end = limit ? start + limit : undefined;
+    
+    return activities.slice(start, end);
 }
 
 /**
  * Get all activity (admin)
  */
 function getAllActivity(options = {}) {
-    const activities = readJSON(ACTIVITY_FILE, { activities: [] });
-    let result = activities.activities;
-
-    // Filter by user
-    if (options.user_id) {
-        result = result.filter(a => a.user_id === options.user_id);
+    const { limit, offset, user_id, action } = options;
+    const data = readJSON(ACTIVITY_LOG, { activities: [] });
+    
+    let activities = data.activities;
+    
+    if (user_id) {
+        activities = activities.filter(a => a.user_id === user_id);
     }
-
-    // Filter by action
-    if (options.action) {
-        result = result.filter(a => a.action === options.action);
+    
+    if (action) {
+        activities = activities.filter(a => a.action === action);
     }
-
-    // Sort by timestamp (newest first)
-    result = result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-    if (options.limit) {
-        const offset = options.offset || 0;
-        result = result.slice(offset, offset + options.limit);
-    }
-
-    return result;
+    
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    const start = offset || 0;
+    const end = limit ? start + limit : undefined;
+    
+    return activities.slice(start, end);
 }
 
 /**
  * Clear activity logs older than N days
  */
 function clearActivityLogs(days = 30) {
-    const activities = readJSON(ACTIVITY_FILE, { activities: [] });
+    const data = readJSON(ACTIVITY_LOG, { activities: [] });
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-    activities.activities = activities.activities.filter(a => {
-        return new Date(a.timestamp) > cutoff;
-    });
-
-    writeJSON(ACTIVITY_FILE, activities);
-    return activities.activities.length;
+    
+    data.activities = data.activities.filter(a => new Date(a.timestamp) > cutoff);
+    writeJSON(ACTIVITY_LOG, data);
+    
+    return data.activities.length;
 }
 
 // ============================================================
-// STORAGE STATS FUNCTIONS
+// SYSTEM STATS
 // ============================================================
-
-/**
- * Get user storage statistics
- */
-function getUserStorageStats(userId) {
-    const megaverses = getUserMegaverses(userId);
-    let totalSize = 0;
-    let fileCount = 0;
-    let versionCount = 0;
-
-    for (const mega of megaverses) {
-        const files = getFiles(mega.id);
-        for (const file of files) {
-            if (!file.is_deleted) {
-                totalSize += file.size || 0;
-                fileCount++;
-                versionCount += (file.backups || []).length;
-            }
-        }
-    }
-
-    return {
-        total_size: totalSize,
-        file_count: fileCount,
-        version_count: versionCount,
-        megaverse_count: megaverses.length
-    };
-}
 
 /**
  * Get system statistics (admin)
  */
 function getSystemStats() {
     const users = getAllUsers();
-    const index = readJSON(MEGAVERSES_INDEX, { megaverses: [] });
-    const activities = readJSON(ACTIVITY_FILE, { activities: [] });
-
+    const totalUsers = users.length;
+    const adminUsers = users.filter(u => u.role === 'admin').length;
+    
     let totalFiles = 0;
-    let totalSize = 0;
+    let totalStorage = 0;
+    let totalMegaverses = 0;
     let totalVersions = 0;
-
-    for (const mega of index.megaverses) {
-        const files = getFiles(mega.id);
-        for (const file of files) {
-            if (!file.is_deleted) {
-                totalFiles++;
-                totalSize += file.size || 0;
-                totalVersions += (file.backups || []).length;
+    
+    for (const user of users) {
+        const megaverses = getUserMegaverses(user.id);
+        totalMegaverses += megaverses.length;
+        
+        for (const mega of megaverses) {
+            const files = getMegaverseFiles(user.id, mega.id);
+            totalFiles += files.filter(f => !f.deleted).length;
+            
+            for (const file of files) {
+                if (!file.deleted) {
+                    totalStorage += file.file_size || 0;
+                    totalVersions += (file.backups ? file.backups.length : 0) + 1;
+                }
             }
         }
     }
-
-    const today = new Date().toDateString();
-    const todayActivities = activities.activities.filter(a => {
-        return new Date(a.timestamp).toDateString() === today;
-    });
-
+    
+    // Activity stats
+    const activityData = readJSON(ACTIVITY_LOG, { activities: [] });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const todayActivities = activityData.activities.filter(a => 
+        new Date(a.timestamp) >= today
+    ).length;
+    
     return {
-        total_users: users.length,
-        total_files: totalFiles,
-        total_size: totalSize,
-        total_versions: totalVersions,
-        total_megaverses: index.megaverses.length,
-        today_activities: todayActivities.length,
-        active_sessions: getActiveSessionCount()
+        users: {
+            total: totalUsers,
+            admin: adminUsers,
+            regular: totalUsers - adminUsers
+        },
+        files: {
+            total: totalFiles,
+            total_versions: totalVersions
+        },
+        storage: {
+            total_bytes: totalStorage,
+            total_formatted: formatBytes(totalStorage)
+        },
+        megaverses: {
+            total: totalMegaverses
+        },
+        activity: {
+            today: todayActivities,
+            total: activityData.activities.length
+        },
+        system: {
+            uptime: process.uptime(),
+            timestamp: getTimestamp()
+        }
     };
 }
 
 /**
- * Get active session count
+ * Format bytes to human readable
  */
-function getActiveSessionCount() {
-    const sessions = readJSON(SESSIONS_FILE, { sessions: [] });
-    const now = new Date();
-    return sessions.sessions.filter(s => new Date(s.expires_at) > now).length;
+function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+    return (bytes / 1073741824).toFixed(2) + ' GB';
 }
 
 // ============================================================
-// SYSTEM CONFIG FUNCTIONS
+// MAINTENANCE
 // ============================================================
 
 /**
- * Get system configuration
+ * Run system maintenance
  */
-function getSystemConfig() {
-    return readJSON(CONFIG_FILE);
-}
-
-/**
- * Update system configuration
- */
-function updateSystemConfig(updates) {
-    const config = readJSON(CONFIG_FILE);
-    const newConfig = { ...config, ...updates };
-    writeJSON(CONFIG_FILE, newConfig);
-    return newConfig;
-}
-
-// ============================================================
-// SEARCH FUNCTIONS
-// ============================================================
-
-/**
- * Search files across all user megaverses
- */
-function searchFiles(userId, options = {}) {
-    const { query, type, limit = 50 } = options;
-    const megaverses = getUserMegaverses(userId);
-    const results = [];
-
-    for (const mega of megaverses) {
-        const files = getFiles(mega.id);
-        for (const file of files) {
-            if (file.is_deleted) continue;
-
-            // Filter by type
-            if (type && file.mime_type !== type && !file.mime_type.startsWith(type)) {
-                continue;
-            }
-
-            // Search by filename
-            if (query && !file.filename.toLowerCase().includes(query.toLowerCase())) {
-                // Search in metadata tags
-                if (file.metadata && file.metadata.tags) {
-                    const tagsMatch = file.metadata.tags.some(t =>
-                        t.toLowerCase().includes(query.toLowerCase())
-                    );
-                    if (!tagsMatch) continue;
-                } else {
-                    continue;
-                }
-            }
-
-            results.push({
-                ...file,
-                megaverse_id: mega.id,
-                megaverse_name: mega.name
-            });
-
-            if (results.length >= limit) break;
-        }
-        if (results.length >= limit) break;
-    }
-
-    return results;
-}
-
-// ============================================================
-// FILE SYSTEM HELPERS
-// ============================================================
-
-/**
- * Get user directory path
- */
-function getUserDirectory(userId) {
-    return path.join(MEGAVERSES_PATH, userId);
-}
-
-/**
- * Get megaverse directory path
- */
-function getMegaverseDirectory(userId, megaverseName) {
-    return path.join(MEGAVERSES_PATH, userId, megaverseName);
-}
-
-/**
- * Ensure user directory exists
- */
-function ensureUserDirectory(userId) {
-    const dir = getUserDirectory(userId);
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-    return dir;
+function runMaintenance() {
+    // Clean expired sessions
+    const sessionCount = cleanExpiredSessions();
+    
+    // Clean expired OTPs
+    const otpCount = cleanExpiredOTPs();
+    
+    // Clean old activity logs (older than 90 days)
+    const activityCount = clearActivityLogs(90);
+    
+    return {
+        sessions_cleaned: sessionCount,
+        otps_cleaned: otpCount,
+        activity_cleaned: activityCount,
+        timestamp: getTimestamp()
+    };
 }
 
 // ============================================================
@@ -1247,16 +1342,19 @@ function ensureUserDirectory(userId) {
 // ============================================================
 
 module.exports = {
-    // System
+    // Init
     ensureSystemFiles,
-
+    
+    // Config
+    getSystemConfig,
+    updateSystemConfig,
+    
     // Sessions
     createSession,
     getSession,
     deleteSession,
-    deleteExpiredSessions,
-    getActiveSessionCount,
-
+    cleanExpiredSessions,
+    
     // Users
     getAllUsers,
     getUserById,
@@ -1264,64 +1362,53 @@ module.exports = {
     getUserByApiKey,
     createUser,
     updateUser,
-    updateUserLastLogin,
-    updateUserStorage,
     updateUserRole,
     updateUserQuota,
-    addUserMegaverse,
+    updateUserStorage,
+    updateUserLastLogin,
     deleteUser,
-    getAllUsersWithStats,
     getAdminUsers,
-
-    // Megaverses
-    getMegaverse,
-    getUserMegaverses,
-    createMegaverse,
-    deleteMegaverse,
-
-    // Files
-    getFiles,
-    getFile,
-    saveFile,
-    softDeleteFile,
-    permanentDeleteFile,
-
-    // Versions
-    getFileVersions,
-    restoreFileVersion,
-
+    getUserStorageStats,
+    getAllUsersWithStats,
+    
     // OTP
     storeOTP,
     verifyOTP,
-
+    cleanExpiredOTPs,
+    
+    // Megaverses
+    getUserMegaverses,
+    getMegaverse,
+    createMegaverse,
+    deleteMegaverse,
+    updateMegaverseStats,
+    
+    // Files
+    getMegaverseFiles,
+    getFile,
+    saveFile,
+    backupExistingFile,
+    getFileVersions,
+    restoreFileVersion,
+    softDeleteFile,
+    permanentDeleteFile,
+    
+    // Search
+    searchFiles,
+    
     // Activity
     logActivity,
     getUserActivity,
     getAllActivity,
     clearActivityLogs,
-
-    // Stats
-    getUserStorageStats,
+    
+    // System
     getSystemStats,
-
-    // Config
-    getSystemConfig,
-    updateSystemConfig,
-
-    // Search
-    searchFiles,
-
-    // Utilities
+    runMaintenance,
+    
+    // Helpers
     getTimestamp,
-    getISOTimestamp,
-    sanitizeFilename,
-    hashFile,
+    getFileTimestamp,
     generateId,
-    readJSON,
-    writeJSON,
-
-    // Paths
-    getUserDirectory,
-    getMegaverseDirectory,
-    ensureUserDirectory
+    formatBytes
 };

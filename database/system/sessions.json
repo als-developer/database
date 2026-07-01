@@ -1,0 +1,15 @@
+{
+  "sessions": [
+    {
+      "token": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+      "user_id": "u_admin_001",
+      "email": "citytechuk@gmail.com",
+      "role": "admin",
+      "created_at": "2026-07-01T14:30:25.000Z",
+      "expires_at": "2026-07-02T14:30:25.000Z",
+      "ip": "45.91.169.201",
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+      "device": "Desktop"
+    }
+  ]
+}

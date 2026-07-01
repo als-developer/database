@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A.L.S — Login</title>
+    
+    <!-- Font Awesome 6 (free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --glass-blur: 20px;
+            --primary: #6C63FF;
+            --primary-dark: #5a52e0;
+            --primary-glow: rgba(108, 99, 255, 0.3);
+            --secondary: #00D4FF;
+            --accent: #FF6B9D;
+            --success: #00E676;
+            --warning: #FFD740;
+            --error: #FF5252;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.75);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-lg, 20px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== ANIMATED BACKGROUND ===== */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.12;
+            animation: floatParticle linear infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-duration: 22s; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 25%; animation-duration: 28s; animation-delay: 2s; width: 6px; height: 6px; }
+        .particle:nth-child(3) { left: 40%; animation-duration: 18s; animation-delay: 4s; }
+        .particle:nth-child(4) { left: 55%; animation-duration: 24s; animation-delay: 1s; width: 5px; height: 5px; }
+        .particle:nth-child(5) { left: 70%; animation-duration: 30s; animation-delay: 3s; }
+        .particle:nth-child(6) { left: 85%; animation-duration: 20s; animation-delay: 5s; width: 6px; height: 6px; }
+        .particle:nth-child(7) { left: 15%; animation-duration: 26s; animation-delay: 6s; }
+        .particle:nth-child(8) { left: 50%; animation-duration: 32s; animation-delay: 2s; width: 5px; height: 5px; }
+        .particle:nth-child(9) { left: 75%; animation-duration: 19s; animation-delay: 4s; }
+        .particle:nth-child(10) { left: 90%; animation-duration: 27s; animation-delay: 7s; width: 6px; height: 6px; }
+
+        @keyframes floatParticle {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.12; }
+            90% { opacity: 0.12; }
+            100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+        }
+
+        .glow-orb {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb--1 {
+            top: -200px;
+            right: -200px;
+            background: var(--primary);
+            animation: pulseOrb 8s ease-in-out infinite alternate;
+        }
+
+        .glow-orb--2 {
+            bottom: -200px;
+            left: -200px;
+            background: var(--secondary);
+            animation: pulseOrb 10s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes pulseOrb {
+            0% { transform: scale(1); opacity: 0.05; }
+            100% { transform: scale(1.3); opacity: 0.1; }
+        }
+
+        /* ===== GLASS CARD ===== */
+        .auth-card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 40px 32px 32px;
+            box-shadow: var(--glass-shadow);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-card__header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-card__logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--text-primary);
+            text-decoration: none;
+            margin-bottom: 12px;
+        }
+
+        .auth-card__logo i {
+            color: var(--primary);
+            font-size: 28px;
+            filter: drop-shadow(0 0 20px var(--primary-glow));
+        }
+
+        .auth-card__logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-card__title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .auth-card__subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-group label .required {
+            color: var(--accent);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 14px 14px 46px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            color: var(--text-primary);
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .input-wrapper input:focus ~ .input-icon {
+            color: var(--primary);
+        }
+
+        .input-wrapper input.error {
+            border-color: var(--error);
+            box-shadow: 0 0 0 4px rgba(255, 82, 82, 0.15);
+        }
+
+        .input-wrapper input.error ~ .input-icon {
+            color: var(--error);
+        }
+
+        .input-wrapper input.success {
+            border-color: var(--success);
+            box-shadow: 0 0 0 4px rgba(0, 230, 118, 0.15);
+        }
+
+        .input-wrapper input.success ~ .input-icon {
+            color: var(--success);
+        }
+
+        .input-wrapper input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-error {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .form-error.visible {
+            display: block;
+        }
+
+        /* ===== OTP INPUT (6 digits) ===== */
+        .otp-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 8px 0 4px;
+        }
+
+        .otp-container input {
+            width: 48px;
+            height: 56px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md, 12px);
+            color: var(--text-primary);
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .otp-container input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .otp-container input.error {
+            border-color: var(--error);
+            box-shadow: 0 0 0 4px rgba(255, 82, 82, 0.15);
+        }
+
+        .otp-container input.success {
+            border-color: var(--success);
+            box-shadow: 0 0 0 4px rgba(0, 230, 118, 0.15);
+        }
+
+        .otp-container input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 24px;
+            border-radius: 50px;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn--primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            box-shadow: 0 4px 24px var(--primary-glow);
+        }
+
+        .btn--primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px var(--primary-glow);
+        }
+
+        .btn--primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn--primary .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn--primary.loading .spinner {
+            display: inline-block;
+        }
+
+        .btn--primary.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn--glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+        }
+
+        .btn--glass:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .btn--outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: var(--text-secondary);
+        }
+
+        .btn--outline:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .btn--text {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px;
+            width: auto;
+        }
+
+        .btn--text:hover {
+            color: var(--text-secondary);
+        }
+
+        /* ===== DIVIDER ===== */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--glass-border), transparent);
+        }
+
+        /* ===== MESSAGES ===== */
+        .message {
+            padding: 12px 16px;
+            border-radius: var(--radius-md, 12px);
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .message.visible {
+            display: flex;
+        }
+
+        .message--success {
+            background: rgba(0, 230, 118, 0.1);
+            border: 1px solid rgba(0, 230, 118, 0.2);
+            color: var(--success);
+        }
+
+        .message--error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid rgba(255, 82, 82, 0.2);
+            color: var(--error);
+        }
+
+        .message--info {
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.15);
+            color: var(--secondary);
+        }
+
+        .message i {
+            font-size: 16px;
+        }
+
+        /* ===== RESEND ===== */
+        .resend-section {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .resend-section .timer {
+            color: var(--text-muted);
+        }
+
+        .resend-section .resend-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: var(--transition);
+            font-size: 13px;
+        }
+
+        .resend-section .resend-btn:hover:not(:disabled) {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+
+        .resend-section .resend-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ===== FOOTER ===== */
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--glass-border);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== BACK BUTTON ===== */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            color: var(--text-secondary);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            .auth-card {
+                padding: 28px 20px 24px;
+                border-radius: var(--radius-lg);
+            }
+
+            .otp-container input {
+                width: 40px;
+                height: 48px;
+                font-size: 20px;
+            }
+
+            .otp-container {
+                gap: 8px;
+            }
+
+            .auth-card__title {
+                font-size: 20px;
+            }
+
+            .glow-orb {
+                width: 300px;
+                height: 300px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .otp-container input {
+                width: 34px;
+                height: 42px;
+                font-size: 18px;
+            }
+
+            .otp-container {
+                gap: 6px;
+            }
+
+            .auth-card {
+                padding: 20px 14px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== BACKGROUND ===== -->
+    <div class="bg-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="glow-orb glow-orb--1"></div>
+    <div class="glow-orb glow-orb--2"></div>
+
+    <!-- ===== AUTH CARD ===== -->
+    <div class="auth-card" id="authCard">
+
+        <!-- Back Link -->
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+
+        <!-- Header -->
+        <div class="auth-card__header">
+            <a href="/" class="auth-card__logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>A.L.S</span>
+            </a>
+            <h1 class="auth-card__title" id="formTitle">Welcome Back</h1>
+            <p class="auth-card__subtitle" id="formSubtitle">Sign in to access your storage</p>
+        </div>
+
+        <!-- ===== STEP 1: EMAIL ===== -->
+        <div id="stepEmail">
+            <!-- Messages -->
+            <div class="message message--info" id="emailInfo">
+                <i class="fas fa-info-circle"></i>
+                <span>Enter your email to receive a verification code.</span>
+            </div>
+            <div class="message message--error" id="emailError">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="emailErrorText">Invalid email address.</span>
+            </div>
+
+            <form id="emailForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="emailInput">
+                        Email Address <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input
+                            type="email"
+                            id="emailInput"
+                            placeholder="you@example.com"
+                            required
+                            autofocus
+                        />
+                    </div>
+                    <div class="form-error" id="emailFieldError">Please enter a valid email.</div>
+                </div>
+
+                <button type="submit" class="btn btn--primary" id="sendOtpBtn">
+                    <span class="btn-text"><i class="fas fa-paper-plane"></i> Send Code</span>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+
+            <div class="divider">or</div>
+
+            <button class="btn btn--glass" id="apiKeyBtn">
+                <i class="fas fa-key"></i> Use API Key
+            </button>
+        </div>
+
+        <!-- ===== STEP 2: OTP ===== -->
+        <div id="stepOtp" style="display: none;">
+            <!-- Messages -->
+            <div class="message message--success" id="otpSuccess">
+                <i class="fas fa-check-circle"></i>
+                <span id="otpSuccessText">Code verified! Redirecting...</span>
+            </div>
+            <div class="message message--error" id="otpError">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="otpErrorText">Invalid code. Please try again.</span>
+            </div>
+            <div class="message message--info" id="otpInfo">
+                <i class="fas fa-envelope"></i>
+                <span>We sent a code to <strong id="otpEmailDisplay">you@example.com</strong></span>
+            </div>
+
+            <div class="form-group">
+                <label for="otpInput">
+                    Verification Code <span class="required">*</span>
+                </label>
+                <div class="otp-container" id="otpContainer">
+                    <input type="text" maxlength="1" class="otp-input" data-index="0" autofocus />
+                    <input type="text" maxlength="1" class="otp-input" data-index="1" />
+                    <input type="text" maxlength="1" class="otp-input" data-index="2" />
+                    <input type="text" maxlength="1" class="otp-input" data-index="3" />
+                    <input type="text" maxlength="1" class="otp-input" data-index="4" />
+                    <input type="text" maxlength="1" class="otp-input" data-index="5" />
+                </div>
+                <div class="form-error" id="otpFieldError">Please enter all 6 digits.</div>
+            </div>
+
+            <button class="btn btn--primary" id="verifyOtpBtn">
+                <span class="btn-text"><i class="fas fa-check"></i> Verify</span>
+                <span class="spinner"></span>
+            </button>
+
+            <div class="resend-section">
+                <span class="timer" id="resendTimer">Resend in 60s</span>
+                <button class="resend-btn" id="resendBtn" disabled>
+                    <i class="fas fa-redo"></i> Resend Code
+                </button>
+            </div>
+
+            <button class="btn btn--text" id="backToEmailBtn" style="margin-top: 12px; width: auto;">
+                <i class="fas fa-arrow-left"></i> Use different email
+            </button>
+        </div>
+
+        <!-- ===== STEP 3: API KEY ===== -->
+        <div id="stepApiKey" style="display: none;">
+            <div class="message message--info">
+                <i class="fas fa-key"></i>
+                <span>Enter your API key to authenticate.</span>
+            </div>
+
+            <form id="apiKeyForm">
+                <div class="form-group">
+                    <label for="apiKeyInput">
+                        API Key <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-key input-icon"></i>
+                        <input
+                            type="password"
+                            id="apiKeyInput"
+                            placeholder="als_xxxxxxxxxxxx"
+                            required
+                        />
+                    </div>
+                    <div class="form-error" id="apiKeyError">Invalid API key.</div>
+                </div>
+
+                <button type="submit" class="btn btn--primary">
+                    <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Authenticate</span>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+
+            <button class="btn btn--text" id="backToEmailFromApiBtn" style="margin-top: 12px; width: auto;">
+                <i class="fas fa-arrow-left"></i> Back to email login
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            &copy; 2026 <a href="https://ailifesolution.com">Ailife Solution</a> &middot;
+            <a href="/">data.ailifesolution.com</a>
+        </div>
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ===== DOM REFS =====
+            const stepEmail = document.getElementById('stepEmail');
+            const stepOtp = document.getElementById('stepOtp');
+            const stepApiKey = document.getElementById('stepApiKey');
+
+            const emailForm = document.getElementById('emailForm');
+            const emailInput = document.getElementById('emailInput');
+            const sendOtpBtn = document.getElementById('sendOtpBtn');
+            const emailError = document.getElementById('emailError');
+            const emailErrorText = document.getElementById('emailErrorText');
+            const emailFieldError = document.getElementById('emailFieldError');
+            const emailInfo = document.getElementById('emailInfo');
+
+            const otpInputs = document.querySelectorAll('.otp-input');
+            const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+            const otpError = document.getElementById('otpError');
+            const otpErrorText = document.getElementById('otpErrorText');
+            const otpSuccess = document.getElementById('otpSuccess');
+            const otpSuccessText = document.getElementById('otpSuccessText');
+            const otpInfo = document.getElementById('otpInfo');
+            const otpEmailDisplay = document.getElementById('otpEmailDisplay');
+            const otpFieldError = document.getElementById('otpFieldError');
+            const resendBtn = document.getElementById('resendBtn');
+            const resendTimer = document.getElementById('resendTimer');
+            const backToEmailBtn = document.getElementById('backToEmailBtn');
+
+            const apiKeyBtn = document.getElementById('apiKeyBtn');
+            const stepApiKeyForm = document.getElementById('apiKeyForm');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const apiKeyError = document.getElementById('apiKeyError');
+            const backToEmailFromApiBtn = document.getElementById('backToEmailFromApiBtn');
+
+            const formTitle = document.getElementById('formTitle');
+            const formSubtitle = document.getElementById('formSubtitle');
+
+            // ===== STATE =====
+            let email = '';
+            let otpCode = '';
+            let resendTimerInterval = null;
+            let resendCooldown = 60;
+            let isOtpVerified = false;
+
+            // ===== HELPERS =====
+            function showMessage(el) {
+                el.classList.add('visible');
+            }
+
+            function hideMessage(el) {
+                el.classList.remove('visible');
+            }
+
+            function hideAllMessages() {
+                [emailError, emailInfo, otpError, otpSuccess, otpInfo, apiKeyError].forEach(hideMessage);
+            }
+
+            function setLoading(btn, loading) {
+                if (loading) {
+                    btn.classList.add('loading');
+                    btn.disabled = true;
+                } else {
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }
+            }
+
+            function showStep(step) {
+                stepEmail.style.display = 'none';
+                stepOtp.style.display = 'none';
+                stepApiKey.style.display = 'none';
+
+                if (step === 'email') {
+                    stepEmail.style.display = 'block';
+                    formTitle.textContent = 'Welcome Back';
+                    formSubtitle.textContent = 'Sign in to access your storage';
+                } else if (step === 'otp') {
+                    stepOtp.style.display = 'block';
+                    formTitle.textContent = 'Verify Your Code';
+                    formSubtitle.textContent = 'Enter the 6-digit code sent to your email';
+                } else if (step === 'apikey') {
+                    stepApiKey.style.display = 'block';
+                    formTitle.textContent = 'API Key Login';
+                    formSubtitle.textContent = 'Authenticate with your API key';
+                }
+                hideAllMessages();
+            }
+
+            // ===== OTP AUTO-FOCUS =====
+            otpInputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 1);
+                    if (this.value && index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                    // Auto-submit when all filled
+                    const allFilled = Array.from(otpInputs).every(inp => inp.value.length === 1);
+                    if (allFilled) {
+                        verifyOtp();
+                    }
+                });
+
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        verifyOtp();
+                    }
+                });
+
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const paste = (e.clipboardData || window.clipboardData).getData('text');
+                    const digits = paste.replace(/\D/g, '').slice(0, 6);
+                    digits.split('').forEach((d, i) => {
+                        if (otpInputs[i]) {
+                            otpInputs[i].value = d;
+                        }
+                    });
+                    const lastIndex = Math.min(digits.length, 6) - 1;
+                    if (otpInputs[lastIndex]) {
+                        otpInputs[lastIndex].focus();
+                    }
+                    const allFilled = Array.from(otpInputs).every(inp => inp.value.length === 1);
+                    if (allFilled) {
+                        verifyOtp();
+                    }
+                });
+            });
+
+            // ===== EMAIL SUBMIT =====
+            emailForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                hideAllMessages();
+
+                const emailVal = emailInput.value.trim();
+                if (!emailVal || !emailVal.includes('@') || !emailVal.includes('.')) {
+                    emailFieldError.classList.add('visible');
+                    emailInput.classList.add('error');
+                    return;
+                }
+                emailFieldError.classList.remove('visible');
+                emailInput.classList.remove('error');
+
+                email = emailVal;
+                requestOtp(email);
+            });
+
+            // ===== REQUEST OTP =====
+            function requestOtp(email) {
+                hideAllMessages();
+                setLoading(sendOtpBtn, true);
+
+                // Simulate API call
+                setTimeout(() => {
+                    setLoading(sendOtpBtn, false);
+                    // Success — show OTP step
+                    otpEmailDisplay.textContent = email;
+                    showStep('otp');
+                    // Focus first OTP input
+                    setTimeout(() => otpInputs[0].focus(), 100);
+                    // Start resend timer
+                    startResendTimer();
+                    // Show info
+                    showMessage(otpInfo);
+                }, 1200);
+            }
+
+            // ===== VERIFY OTP =====
+            function verifyOtp() {
+                if (isOtpVerified) return;
+                const code = Array.from(otpInputs).map(inp => inp.value).join('');
+                if (code.length !== 6) {
+                    otpFieldError.classList.add('visible');
+                    return;
+                }
+                otpFieldError.classList.remove('visible');
+                otpCode = code;
+
+                hideAllMessages();
+                setLoading(verifyOtpBtn, true);
+
+                // Simulate verification
+                setTimeout(() => {
+                    setLoading(verifyOtpBtn, false);
+
+                    // For demo: accept any 6 digits, or a fixed code
+                    // In production, this would call /api/verify-otp
+                    if (code === '123456' || code === '789012') {
+                        isOtpVerified = true;
+                        showMessage(otpSuccess);
+                        otpSuccessText.textContent = '✅ Verified! Redirecting...';
+                        // Redirect to user dashboard
+                        setTimeout(() => {
+                            window.location.href = '/user.html';
+                        }, 1200);
+                    } else {
+                        showMessage(otpError);
+                        otpErrorText.textContent = '❌ Invalid code. Please try again.';
+                        otpInputs.forEach(inp => {
+                            inp.classList.add('error');
+                            inp.value = '';
+                        });
+                        setTimeout(() => {
+                            otpInputs[0].focus();
+                            otpInputs.forEach(inp => inp.classList.remove('error'));
+                        }, 300);
+                    }
+                }, 1000);
+            }
+
+            // ===== VERIFY OTP BUTTON =====
+            verifyOtpBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                verifyOtp();
+            });
+
+            // ===== RESEND TIMER =====
+            function startResendTimer() {
+                resendCooldown = 60;
+                resendBtn.disabled = true;
+                resendTimer.textContent = `Resend in ${resendCooldown}s`;
+
+                if (resendTimerInterval) clearInterval(resendTimerInterval);
+
+                resendTimerInterval = setInterval(() => {
+                    resendCooldown--;
+                    resendTimer.textContent = `Resend in ${resendCooldown}s`;
+                    if (resendCooldown <= 0) {
+                        clearInterval(resendTimerInterval);
+                        resendTimer.textContent = 'Resend code';
+                        resendBtn.disabled = false;
+                    }
+                }, 1000);
+            }
+
+            // ===== RESEND =====
+            resendBtn.addEventListener('click', function() {
+                if (this.disabled) return;
+                hideAllMessages();
+                showMessage(otpInfo);
+                otpInfo.querySelector('span').innerHTML =
+                    `🔄 Resending code to <strong>${email}</strong>...`;
+
+                // Simulate resend
+                setTimeout(() => {
+                    otpInfo.querySelector('span').innerHTML =
+                        `📨 New code sent to <strong>${email}</strong>`;
+                    startResendTimer();
+                    otpInputs.forEach(inp => inp.value = '');
+                    otpInputs[0].focus();
+                }, 1000);
+            });
+
+            // ===== BACK TO EMAIL =====
+            backToEmailBtn.addEventListener('click', function() {
+                showStep('email');
+                if (resendTimerInterval) clearInterval(resendTimerInterval);
+                emailInput.value = email || '';
+                emailInput.focus();
+            });
+
+            // ===== API KEY TOGGLE =====
+            apiKeyBtn.addEventListener('click', function() {
+                showStep('apikey');
+                apiKeyInput.value = '';
+                apiKeyInput.focus();
+            });
+
+            backToEmailFromApiBtn.addEventListener('click', function() {
+                showStep('email');
+                emailInput.focus();
+            });
+
+            // ===== API KEY SUBMIT =====
+            stepApiKeyForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                hideAllMessages();
+
+                const key = apiKeyInput.value.trim();
+                if (!key || key.length < 10) {
+                    showMessage(apiKeyError);
+                    apiKeyInput.classList.add('error');
+                    return;
+                }
+                apiKeyInput.classList.remove('error');
+
+                // Simulate API key auth
+                const btn = this.querySelector('.btn');
+                setLoading(btn, true);
+
+                setTimeout(() => {
+                    setLoading(btn, false);
+                    // In production: validate key
+                    if (key.startsWith('als_')) {
+                        window.location.href = '/user.html';
+                    } else {
+                        showMessage(apiKeyError);
+                        apiKeyInput.classList.add('error');
+                    }
+                }, 1000);
+            });
+
+            // ===== KEYBOARD SHORTCUTS =====
+            document.addEventListener('keydown', function(e) {
+                // Escape to go back
+                if (e.key === 'Escape') {
+                    if (stepOtp.style.display !== 'none') {
+                        backToEmailBtn.click();
+                    } else if (stepApiKey.style.display !== 'none') {
+                        backToEmailFromApiBtn.click();
+                    }
+                }
+            });
+
+            // ===== INIT =====
+            showStep('email');
+            emailInput.focus();
+
+            // If coming from landing with ?email param
+            const urlParams = new URLSearchParams(window.location.search);
+            const prefillEmail = urlParams.get('email');
+            if (prefillEmail) {
+                emailInput.value = prefillEmail;
+            }
+
+            console.log('🔐 A.L.S Auth Page loaded');
+            console.log('📧 Enter email to receive OTP');
+        })();
+    </script>
+</body>
+</html>

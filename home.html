@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A.L.S — Advanced Local Storage</title>
+    
+    <!-- Font Awesome 6 (free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <!-- Google Fonts: Inter + Space Grotesk -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Backgrounds */
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            
+            /* Glass */
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --glass-blur: 20px;
+            
+            /* Colors */
+            --primary: #6C63FF;
+            --primary-dark: #5a52e0;
+            --primary-glow: rgba(108, 99, 255, 0.3);
+            --secondary: #00D4FF;
+            --accent: #FF6B9D;
+            --success: #00E676;
+            --warning: #FFD740;
+            
+            /* Text */
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.75);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --spacing-2xl: 48px;
+            --spacing-3xl: 64px;
+            
+            /* Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            
+            /* Transitions */
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ===== ANIMATED BACKGROUND PARTICLES ===== */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: floatParticle linear infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-duration: 20s; animation-delay: 0s; width: 3px; height: 3px; }
+        .particle:nth-child(2) { left: 20%; animation-duration: 25s; animation-delay: 2s; width: 5px; height: 5px; }
+        .particle:nth-child(3) { left: 30%; animation-duration: 18s; animation-delay: 4s; width: 4px; height: 4px; }
+        .particle:nth-child(4) { left: 40%; animation-duration: 22s; animation-delay: 1s; width: 6px; height: 6px; }
+        .particle:nth-child(5) { left: 50%; animation-duration: 28s; animation-delay: 3s; width: 3px; height: 3px; }
+        .particle:nth-child(6) { left: 60%; animation-duration: 20s; animation-delay: 5s; width: 5px; height: 5px; }
+        .particle:nth-child(7) { left: 70%; animation-duration: 24s; animation-delay: 2s; width: 4px; height: 4px; }
+        .particle:nth-child(8) { left: 80%; animation-duration: 26s; animation-delay: 4s; width: 6px; height: 6px; }
+        .particle:nth-child(9) { left: 90%; animation-duration: 21s; animation-delay: 1s; width: 3px; height: 3px; }
+        .particle:nth-child(10) { left: 15%; animation-duration: 30s; animation-delay: 6s; width: 5px; height: 5px; }
+        .particle:nth-child(11) { left: 45%; animation-duration: 23s; animation-delay: 3s; width: 4px; height: 4px; }
+        .particle:nth-child(12) { left: 75%; animation-duration: 27s; animation-delay: 5s; width: 3px; height: 3px; }
+
+        @keyframes floatParticle {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.15;
+            }
+            90% {
+                opacity: 0.15;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* ===== GLOW ORB ===== */
+        .glow-orb {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.08;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb--1 {
+            top: -200px;
+            right: -200px;
+            background: var(--primary);
+            animation: pulseOrb 8s ease-in-out infinite alternate;
+        }
+
+        .glow-orb--2 {
+            bottom: -200px;
+            left: -200px;
+            background: var(--secondary);
+            animation: pulseOrb 10s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes pulseOrb {
+            0% {
+                transform: scale(1);
+                opacity: 0.06;
+            }
+            100% {
+                transform: scale(1.3);
+                opacity: 0.12;
+            }
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--spacing-lg) 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .navbar__logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .navbar__logo i {
+            color: var(--primary);
+            font-size: 28px;
+            filter: drop-shadow(0 0 20px var(--primary-glow));
+        }
+
+        .navbar__logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .navbar__links {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            list-style: none;
+        }
+
+        .navbar__links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .navbar__links a:hover {
+            color: var(--text-primary);
+        }
+
+        .navbar__links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: var(--transition);
+        }
+
+        .navbar__links a:hover::after {
+            width: 100%;
+        }
+
+        .navbar__actions {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        /* ===== GLASS BUTTON ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn--glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+        }
+
+        .btn--glass:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(108, 99, 255, 0.2);
+        }
+
+        .btn--primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            box-shadow: 0 4px 24px var(--primary-glow);
+        }
+
+        .btn--primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px var(--primary-glow);
+        }
+
+        .btn--primary i {
+            transition: var(--transition);
+        }
+
+        .btn--primary:hover i {
+            transform: translateX(4px);
+        }
+
+        .btn--outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+        }
+
+        .btn--outline:hover {
+            border-color: var(--primary);
+            background: rgba(108, 99, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* ===== HAMBURGER (mobile) ===== */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: var(--transition);
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+
+        /* ===== HERO SECTION ===== */
+        .hero {
+            padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+            text-align: center;
+            position: relative;
+        }
+
+        .hero__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            background: rgba(108, 99, 255, 0.12);
+            border: 1px solid rgba(108, 99, 255, 0.2);
+            border-radius: 50px;
+            padding: 6px 16px 6px 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            margin-bottom: var(--spacing-lg);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero__badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .hero__title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(40px, 8vw, 72px);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: var(--spacing-md);
+            letter-spacing: -2px;
+        }
+
+        .hero__title .gradient {
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero__subtitle {
+            font-size: clamp(16px, 2vw, 20px);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto var(--spacing-xl);
+            line-height: 1.7;
+        }
+
+        .hero__actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+        }
+
+        /* ===== FEATURES GRID ===== */
+        .features {
+            padding: var(--spacing-2xl) 0;
+        }
+
+        .features__header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .features__header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .features__header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .features__grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(108, 99, 255, 0.05), transparent 70%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(108, 99, 255, 0.2);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card__icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(108, 99, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--spacing-md);
+            font-size: 24px;
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover .feature-card__icon {
+            background: rgba(108, 99, 255, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 40px var(--primary-glow);
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ===== API DOCS SECTION ===== */
+        .api-section {
+            padding: var(--spacing-2xl) 0;
+        }
+
+        .api-section__header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .api-section__header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .api-section__header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .api-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            max-width: 800px;
+            margin: 0 auto;
+            transition: var(--transition);
+        }
+
+        .api-card:hover {
+            border-color: rgba(108, 99, 255, 0.2);
+        }
+
+        .api-card__item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .api-card__item:last-child {
+            border-bottom: none;
+        }
+
+        .api-card__method {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 4px;
+            min-width: 48px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .api-card__method--post {
+            background: rgba(0, 212, 255, 0.15);
+            color: var(--secondary);
+        }
+
+        .api-card__method--get {
+            background: rgba(0, 230, 118, 0.15);
+            color: var(--success);
+        }
+
+        .api-card__method--delete {
+            background: rgba(255, 107, 157, 0.15);
+            color: var(--accent);
+        }
+
+        .api-card__endpoint {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .api-card__endpoint .highlight {
+            color: var(--primary);
+        }
+
+        .api-card__desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .api-card__footer {
+            text-align: center;
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: var(--spacing-2xl) 0 var(--spacing-lg);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            margin-top: var(--spacing-2xl);
+        }
+
+        .footer__inner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+        }
+
+        .footer__brand {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .footer__brand i {
+            color: var(--primary);
+        }
+
+        .footer__links {
+            display: flex;
+            gap: var(--spacing-lg);
+            list-style: none;
+        }
+
+        .footer__links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            transition: var(--transition);
+        }
+
+        .footer__links a:hover {
+            color: var(--text-secondary);
+        }
+
+        .footer__copy {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .api-card__desc {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar__links {
+                display: none;
+                position: absolute;
+                top: 80px;
+                left: var(--spacing-lg);
+                right: var(--spacing-lg);
+                background: rgba(10, 10, 15, 0.95);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid var(--glass-border);
+                border-radius: var(--radius-lg);
+                flex-direction: column;
+                padding: var(--spacing-lg);
+                gap: var(--spacing-md);
+            }
+
+            .navbar__links.open {
+                display: flex;
+            }
+
+            .hamburger {
+                display: flex;
+            }
+
+            .navbar__actions .btn--glass {
+                display: none;
+            }
+
+            .hero {
+                padding: var(--spacing-2xl) 0 var(--spacing-xl);
+            }
+
+            .features__grid {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+
+            .api-card__item {
+                flex-wrap: wrap;
+                gap: var(--spacing-sm);
+            }
+
+            .api-card__endpoint {
+                font-size: 12px;
+                word-break: break-all;
+                width: 100%;
+            }
+
+            .api-card__desc {
+                font-size: 12px;
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .footer__inner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer__links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 var(--spacing-md);
+            }
+
+            .hero__title {
+                font-size: 32px;
+            }
+
+            .hero__actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .hero__actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .feature-card {
+                padding: var(--spacing-lg);
+            }
+
+            .glow-orb {
+                width: 300px;
+                height: 300px;
+            }
+        }
+
+        /* ===== UTILITY ===== */
+        .text-center {
+            text-align: center;
+        }
+        .mt-xl {
+            margin-top: var(--spacing-xl);
+        }
+        .mb-lg {
+            margin-bottom: var(--spacing-lg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== BACKGROUND PARTICLES ===== -->
+    <div class="bg-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- ===== GLOW ORBS ===== -->
+    <div class="glow-orb glow-orb--1"></div>
+    <div class="glow-orb glow-orb--2"></div>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="container">
+        <div class="navbar">
+            <a href="/" class="navbar__logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>A.L.S</span>
+            </a>
+
+            <ul class="navbar__links" id="navLinks">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#api">API</a></li>
+                <li><a href="#docs">Docs</a></li>
+                <li>
+                    <a href="/auth.html#login" class="btn btn--primary" style="padding: 8px 20px; font-size: 13px;">
+                        <i class="fas fa-rocket"></i> Login
+                    </a>
+                </li>
+            </ul>
+
+            <div class="navbar__actions">
+                <a href="/auth.html#login" class="btn btn--glass">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </a>
+                <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero container">
+        <div class="hero__badge">
+            <span class="dot"></span>
+            System Online · v1.0.0
+        </div>
+
+        <h1 class="hero__title">
+            Secure. Versioned.<br />
+            <span class="gradient">Your Storage, Your Rules.</span>
+        </h1>
+
+        <p class="hero__subtitle">
+            A.L.S — Advanced Local Storage. Upload, version, and backup your files
+            with zero complexity. Pure JSON, full control.
+        </p>
+
+        <div class="hero__actions">
+            <a href="/auth.html#login" class="btn btn--primary">
+                <i class="fas fa-arrow-right"></i> Get Started
+            </a>
+            <a href="#api" class="btn btn--outline">
+                <i class="fas fa-code"></i> API Docs
+            </a>
+            <a href="#features" class="btn btn--glass">
+                <i class="fas fa-chevron-down"></i> Explore
+            </a>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="features container" id="features">
+        <div class="features__header">
+            <h2>Everything You Need</h2>
+            <p>Built for simplicity, powered for production.</p>
+        </div>
+
+        <div class="features__grid">
+            <div class="feature-card">
+                <div class="feature-card__icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3>Instant Upload</h3>
+                <p>Drag & drop or click to upload. Files are stored instantly with automatic versioning.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-card__icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <h3>Version History</h3>
+                <p>Every update creates a backup. Restore any previous version with one click.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-card__icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Secure & Private</h3>
+                <p>Your data stays on your server. No third-party access, no surprises.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-card__icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <h3>JSON Database</h3>
+                <p>No SQL. No complexity. Everything is stored in human-readable JSON files.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== API DOCS ===== -->
+    <section class="api-section container" id="api">
+        <div class="api-section__header">
+            <h2>API Reference</h2>
+            <p>Simple REST API for programmatic access.</p>
+        </div>
+
+        <div class="api-card">
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--post">POST</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">request-otp</span>
+                </span>
+                <span class="api-card__desc">Request OTP via email</span>
+            </div>
+
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--post">POST</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">verify-otp</span>
+                </span>
+                <span class="api-card__desc">Verify OTP &amp; create session</span>
+            </div>
+
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--post">POST</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">upload</span>
+                </span>
+                <span class="api-card__desc">Upload a file</span>
+            </div>
+
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--get">GET</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">files</span>
+                </span>
+                <span class="api-card__desc">List all files</span>
+            </div>
+
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--get">GET</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">file/:id/versions</span>
+                </span>
+                <span class="api-card__desc">Get version history</span>
+            </div>
+
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--post">POST</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">file/:id/restore/:version</span>
+                </span>
+                <span class="api-card__desc">Restore a version</span>
+            </div>
+
+            <div class="api-card__item">
+                <span class="api-card__method api-card__method--delete">DELETE</span>
+                <span class="api-card__endpoint">
+                    /api/<span class="highlight">file/:id</span>
+                </span>
+                <span class="api-card__desc">Delete a file</span>
+            </div>
+
+            <div class="api-card__footer">
+                <a href="/docs.html" class="btn btn--glass">
+                    <i class="fas fa-book-open"></i> Full Documentation
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer container">
+        <div class="footer__inner">
+            <div class="footer__brand">
+                <i class="fas fa-shield-alt"></i>
+                A.L.S — Advanced Local Storage
+            </div>
+
+            <ul class="footer__links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#api">API</a></li>
+                <li><a href="/auth.html#login">Login</a></li>
+                <li><a href="https://github.com/ailifesolution/als" target="_blank">GitHub</a></li>
+            </ul>
+
+            <span class="footer__copy">
+                &copy; 2026 <a href="https://ailifesolution.com" style="color: var(--text-muted); text-decoration: none;">Ailife Solution</a>
+            </span>
+        </div>
+    </footer>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+        // ===== HAMBURGER TOGGLE =====
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('open');
+        });
+
+        // Close menu on link click (mobile)
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navLinks.classList.remove('open');
+            });
+        });
+
+        // ===== SMOOTH SCROLL =====
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // ===== KEYBOARD NAVIGATION =====
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hamburger.classList.remove('active');
+                navLinks.classList.remove('open');
+            }
+        });
+
+        // ===== CONSOLE WELCOME =====
+        console.log('✨ A.L.S — Advanced Local Storage');
+        console.log('🚀 data.ailifesolution.com');
+        console.log('📖 API docs: /docs.html');
+    </script>
+
+</body>
+</html>

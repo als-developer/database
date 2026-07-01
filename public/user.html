@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A.L.S — Dashboard</title>
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --glass-blur: 20px;
+            --primary: #6C63FF;
+            --primary-dark: #5a52e0;
+            --primary-glow: rgba(108, 99, 255, 0.3);
+            --secondary: #00D4FF;
+            --accent: #FF6B9D;
+            --success: #00E676;
+            --warning: #FFD740;
+            --error: #FF5252;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.75);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --sidebar-width: 240px;
+            --header-height: 64px;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* ===== APP LAYOUT ===== */
+        .app {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-right: 1px solid var(--glass-border);
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar__logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--text-primary);
+            text-decoration: none;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 20px;
+        }
+
+        .sidebar__logo i {
+            color: var(--primary);
+            font-size: 24px;
+            filter: drop-shadow(0 0 20px var(--primary-glow));
+        }
+
+        .sidebar__logo span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar__user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .sidebar__user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .sidebar__user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar__user-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar__user-email {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar__user-badge {
+            font-size: 10px;
+            padding: 2px 10px;
+            border-radius: 50px;
+            background: var(--primary-glow);
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar__nav {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .sidebar__nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar__nav-item i {
+            width: 20px;
+            font-size: 16px;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .sidebar__nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+        }
+
+        .sidebar__nav-item:hover i {
+            color: var(--text-secondary);
+        }
+
+        .sidebar__nav-item.active {
+            background: rgba(108, 99, 255, 0.12);
+            color: var(--primary);
+            box-shadow: inset 0 0 0 1px rgba(108, 99, 255, 0.15);
+        }
+
+        .sidebar__nav-item.active i {
+            color: var(--primary);
+        }
+
+        .sidebar__nav-item .badge {
+            margin-left: auto;
+            background: rgba(255, 107, 157, 0.15);
+            color: var(--accent);
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        .sidebar__footer {
+            padding-top: 16px;
+            border-top: 1px solid var(--glass-border);
+            margin-top: auto;
+        }
+
+        .sidebar__footer .sidebar__nav-item {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .sidebar__footer .sidebar__nav-item:hover {
+            color: var(--error);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            height: var(--header-height);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .header__left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header__menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .header__title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header__title span {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header__right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header__search {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 6px 16px 6px 14px;
+            transition: var(--transition);
+        }
+
+        .header__search:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .header__search input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 13px;
+            padding: 6px 0;
+            width: 180px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .header__search input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .header__search i {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .header__actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header__actions .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .header__actions .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .header__actions .btn-icon .notification-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            position: absolute;
+            top: 6px;
+            right: 6px;
+        }
+
+        .header__actions .btn-icon {
+            position: relative;
+        }
+
+        /* ===== CONTENT AREA ===== */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* ===== STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            border-color: rgba(108, 99, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .stat-card__label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card__value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .stat-card__value .unit {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .stat-card__sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar__fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.6s ease;
+        }
+
+        /* ===== SECTION HEADER ===== */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .section-header .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 6px 16px;
+            font-size: 12px;
+            border-radius: 50px;
+            font-weight: 500;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Inter', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-sm:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .btn-sm.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        .btn-sm.primary:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+
+        .btn-sm.success {
+            background: rgba(0, 230, 118, 0.15);
+            border-color: rgba(0, 230, 118, 0.2);
+            color: var(--success);
+        }
+
+        .btn-sm.danger {
+            background: rgba(255, 82, 82, 0.12);
+            border-color: rgba(255, 82, 82, 0.15);
+            color: var(--error);
+        }
+
+        .btn-sm.danger:hover {
+            background: rgba(255, 82, 82, 0.2);
+        }
+
+        /* ===== DROP ZONE ===== */
+        .drop-zone {
+            border: 2px dashed var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            background: var(--glass-bg);
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .drop-zone:hover {
+            border-color: rgba(108, 99, 255, 0.3);
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(108, 99, 255, 0.05);
+            box-shadow: 0 0 40px var(--primary-glow);
+        }
+
+        .drop-zone__icon {
+            font-size: 48px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .drop-zone__title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .drop-zone__sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .drop-zone__sub .highlight {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* ===== FILE LIST ===== */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+
+        .file-item:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .file-item__icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            background: rgba(108, 99, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .file-item__icon.image {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--secondary);
+        }
+        .file-item__icon.pdf {
+            background: rgba(255, 107, 157, 0.1);
+            color: var(--accent);
+        }
+        .file-item__icon.video {
+            background: rgba(255, 215, 64, 0.1);
+            color: var(--warning);
+        }
+        .file-item__icon.code {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success);
+        }
+
+        .file-item__info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-item__name {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-item__meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .file-item__meta .version {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .file-item__actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .file-item__actions button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-item__actions button:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+        }
+
+        .file-item__actions button.restore:hover {
+            color: var(--success);
+        }
+        .file-item__actions button.delete:hover {
+            color: var(--error);
+            background: rgba(255, 82, 82, 0.1);
+        }
+        .file-item__actions button.download:hover {
+            color: var(--secondary);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 56px;
+            color: var(--text-muted);
+            opacity: 0.3;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* ===== VERSION MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--glass-shadow);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .modal__header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal__close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            transition: var(--transition);
+        }
+
+        .modal__close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal__body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .version-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--glass-bg);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+        }
+
+        .version-item:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .version-item__info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .version-item__version {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .version-item__date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .version-item .btn-sm {
+            font-size: 11px;
+            padding: 4px 12px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100%;
+                transform: translateX(-100%);
+                width: 280px;
+                z-index: 100;
+                background: var(--bg-secondary);
+                border-right: 1px solid var(--glass-border);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 99;
+            }
+
+            .sidebar-overlay.open {
+                display: block;
+            }
+
+            .header__menu-btn {
+                display: block;
+            }
+
+            .header__search input {
+                width: 120px;
+            }
+
+            .header__search {
+                padding: 4px 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .stat-card__value {
+                font-size: 22px;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .file-item {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .file-item__info {
+                flex: 1 1 100%;
+                order: 2;
+            }
+
+            .file-item__actions {
+                order: 3;
+                margin-left: auto;
+            }
+
+            .file-item__icon {
+                order: 1;
+            }
+
+            .drop-zone {
+                padding: 24px 16px;
+            }
+
+            .drop-zone__icon {
+                font-size: 32px;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .section-header .actions {
+                justify-content: stretch;
+            }
+
+            .section-header .actions .btn-sm {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .stat-card {
+                padding: 12px 14px;
+            }
+
+            .stat-card__value {
+                font-size: 18px;
+            }
+
+            .stat-card__label {
+                font-size: 10px;
+            }
+
+            .header {
+                padding: 0 12px;
+                height: 56px;
+            }
+
+            .header__title {
+                font-size: 14px;
+            }
+
+            .header__search input {
+                width: 80px;
+                font-size: 12px;
+            }
+
+            .content {
+                padding: 12px;
+            }
+
+            .modal {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--glass-shadow);
+            z-index: 2000;
+            max-width: 400px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .toast.visible {
+            display: flex;
+        }
+
+        .toast.success {
+            border-color: rgba(0, 230, 118, 0.3);
+        }
+        .toast.success i {
+            color: var(--success);
+        }
+        .toast.error {
+            border-color: rgba(255, 82, 82, 0.3);
+        }
+        .toast.error i {
+            color: var(--error);
+        }
+        .toast.info {
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        .toast.info i {
+            color: var(--secondary);
+        }
+
+        .toast .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 8px;
+            padding: 0 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== SIDEBAR OVERLAY (mobile) ===== -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ===== APP ===== -->
+    <div class="app">
+
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar" id="sidebar">
+            <a href="/" class="sidebar__logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>A.L.S</span>
+            </a>
+
+            <div class="sidebar__user">
+                <div class="sidebar__user-avatar">A</div>
+                <div class="sidebar__user-info">
+                    <div class="sidebar__user-name" id="userName">Admin</div>
+                    <div class="sidebar__user-email" id="userEmail">user@example.com</div>
+                </div>
+                <span class="sidebar__user-badge" id="userRole">Admin</span>
+            </div>
+
+            <nav class="sidebar__nav">
+                <button class="sidebar__nav-item active" data-view="dashboard">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </button>
+                <button class="sidebar__nav-item" data-view="files">
+                    <i class="fas fa-folder"></i> My Files
+                    <span class="badge" id="fileCount">0</span>
+                </button>
+                <button class="sidebar__nav-item" data-view="upload">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload
+                </button>
+                <button class="sidebar__nav-item" data-view="megaverses">
+                    <i class="fas fa-layer-group"></i> Megaverses
+                    <span class="badge" id="megaverseCount">0</span>
+                </button>
+                <button class="sidebar__nav-item" data-view="activity">
+                    <i class="fas fa-list"></i> Activity
+                </button>
+                <button class="sidebar__nav-item" data-view="settings">
+                    <i class="fas fa-sliders-h"></i> Settings
+                </button>
+            </nav>
+
+            <div class="sidebar__footer">
+                <button class="sidebar__nav-item" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN ===== -->
+        <main class="main">
+
+            <!-- ===== HEADER ===== -->
+            <header class="header">
+                <div class="header__left">
+                    <button class="header__menu-btn" id="menuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="header__title">
+                        Dashboard <span id="pageSubtitle">overview</span>
+                    </div>
+                </div>
+
+                <div class="header__right">
+                    <div class="header__search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search files..." id="searchInput" />
+                    </div>
+                    <div class="header__actions">
+                        <button class="btn-icon" id="notifBtn" title="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-dot"></span>
+                        </button>
+                        <button class="btn-icon" id="refreshBtn" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ===== CONTENT ===== -->
+            <div class="content" id="contentArea">
+
+                <!-- ===== DASHBOARD VIEW ===== -->
+                <div id="view-dashboard">
+
+                    <!-- Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card__label">Total Storage</div>
+                            <div class="stat-card__value" id="totalStorage">0 <span class="unit">MB</span></div>
+                            <div class="progress-bar">
+                                <div class="progress-bar__fill" id="storageProgress" style="width: 0%;"></div>
+                            </div>
+                            <div class="stat-card__sub" id="storageSub">0% of 10 GB used</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__label">Total Files</div>
+                            <div class="stat-card__value" id="totalFiles">0</div>
+                            <div class="stat-card__sub">Across all megaverses</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__label">Megaverses</div>
+                            <div class="stat-card__value" id="totalMegaverses">0</div>
+                            <div class="stat-card__sub">Active containers</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card__label">Versions</div>
+                            <div class="stat-card__value" id="totalVersions">0</div>
+                            <div class="stat-card__sub">Backups saved</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Files -->
+                    <div class="section-header">
+                        <h2><i class="fas fa-clock" style="color:var(--text-muted);margin-right:8px;"></i> Recent Files</h2>
+                        <div class="actions">
+                            <button class="btn-sm" data-view="files">View All <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="file-list" id="recentFiles">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- ===== FILES VIEW ===== -->
+                <div id="view-files" style="display:none;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-folder" style="color:var(--text-muted);margin-right:8px;"></i> All Files</h2>
+                        <div class="actions">
+                            <button class="btn-sm" data-view="upload"><i class="fas fa-plus"></i> Upload</button>
+                            <button class="btn-sm" id="refreshFilesBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
+                    </div>
+                    <div class="file-list" id="allFiles">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- ===== UPLOAD VIEW ===== -->
+                <div id="view-upload" style="display:none;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cloud-upload-alt" style="color:var(--text-muted);margin-right:8px;"></i> Upload Files</h2>
+                    </div>
+
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone__icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="drop-zone__title">Drop files here or click to browse</div>
+                        <div class="drop-zone__sub">
+                            Max file size: <span class="highlight">100 MB</span> &middot;
+                            Supported: images, PDFs, text, and more
+                        </div>
+                        <input type="file" id="fileInput" multiple />
+                    </div>
+
+                    <div id="uploadQueue" style="margin-top:16px;">
+                        <!-- Upload queue rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- ===== MEGAVERSES VIEW ===== -->
+                <div id="view-megaverses" style="display:none;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-layer-group" style="color:var(--text-muted);margin-right:8px;"></i> Megaverses</h2>
+                        <div class="actions">
+                            <button class="btn-sm primary" id="createMegaverseBtn"><i class="fas fa-plus"></i> New Megaverse</button>
+                        </div>
+                    </div>
+                    <div id="megaverseList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- ===== ACTIVITY VIEW ===== -->
+                <div id="view-activity" style="display:none;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-list" style="color:var(--text-muted);margin-right:8px;"></i> Activity Log</h2>
+                        <div class="actions">
+                            <button class="btn-sm" id="clearActivityBtn"><i class="fas fa-trash"></i> Clear</button>
+                        </div>
+                    </div>
+                    <div id="activityList" style="display:flex;flex-direction:column;gap:6px;">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- ===== SETTINGS VIEW ===== -->
+                <div id="view-settings" style="display:none;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-sliders-h" style="color:var(--text-muted);margin-right:8px;"></i> Settings</h2>
+                    </div>
+
+                    <div style="display:grid;gap:16px;max-width:600px;">
+                        <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;">
+                            <h4 style="font-weight:600;margin-bottom:12px;">Theme</h4>
+                            <button class="btn-sm" id="themeToggle"><i class="fas fa-moon"></i> Dark</button>
+                        </div>
+
+                        <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;">
+                            <h4 style="font-weight:600;margin-bottom:12px;">Storage Quota</h4>
+                            <p style="color:var(--text-secondary);font-size:14px;">10 GB total · <span id="quotaUsed">0 MB</span> used</p>
+                            <div class="progress-bar" style="margin-top:8px;">
+                                <div class="progress-bar__fill" id="quotaProgress" style="width:0%;"></div>
+                            </div>
+                        </div>
+
+                        <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;">
+                            <h4 style="font-weight:600;margin-bottom:12px;">API Key</h4>
+                            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:8px;">Your API key for programmatic access</p>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <code id="apiKeyDisplay" style="background:rgba(255,255,255,0.05);padding:6px 12px;border-radius:6px;font-size:13px;color:var(--text-secondary);word-break:break-all;flex:1;">als_xxxxxxxxxxxxxxxxxxxx</code>
+                                <button class="btn-sm" id="copyApiKeyBtn"><i class="fas fa-copy"></i> Copy</button>
+                                <button class="btn-sm" id="regenerateApiKeyBtn"><i class="fas fa-sync-alt"></i> Regenerate</button>
+                            </div>
+                        </div>
+
+                        <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;">
+                            <h4 style="font-weight:600;margin-bottom:12px;color:var(--error);">Danger Zone</h4>
+                            <button class="btn-sm danger" id="deleteAllDataBtn"><i class="fas fa-exclamation-triangle"></i> Delete All Data</button>
+                            <p style="color:var(--text-muted);font-size:12px;margin-top:8px;">This will permanently delete all your files and megaverses.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== VERSION MODAL ===== -->
+    <div class="modal-overlay" id="versionModal">
+        <div class="modal">
+            <div class="modal__header">
+                <h3><i class="fas fa-history" style="color:var(--primary);margin-right:8px;"></i> <span id="modalFileName">File</span> — Versions</h3>
+                <button class="modal__close" id="modalCloseBtn">&times;</button>
+            </div>
+            <div class="modal__body" id="modalBody">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
+        <button class="toast-close" id="toastClose">&times;</button>
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ===== STATE =====
+            let currentView = 'dashboard';
+            let files = [];
+            let megaverses = [];
+            let activities = [];
+            let currentFileId = null;
+
+            // ===== DOM REFS =====
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const menuBtn = document.getElementById('menuBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const searchInput = document.getElementById('searchInput');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            const views = {
+                dashboard: document.getElementById('view-dashboard'),
+                files: document.getElementById('view-files'),
+                upload: document.getElementById('view-upload'),
+                megaverses: document.getElementById('view-megaverses'),
+                activity: document.getElementById('view-activity'),
+                settings: document.getElementById('view-settings')
+            };
+
+            const navItems = document.querySelectorAll('.sidebar__nav-item[data-view]');
+            const pageSubtitle = document.getElementById('pageSubtitle');
+
+            const recentFilesEl = document.getElementById('recentFiles');
+            const allFilesEl = document.getElementById('allFiles');
+            const fileCountBadge = document.getElementById('fileCount');
+            const megaverseCountBadge = document.getElementById('megaverseCount');
+
+            const totalStorage = document.getElementById('totalStorage');
+            const totalFiles = document.getElementById('totalFiles');
+            const totalMegaverses = document.getElementById('totalMegaverses');
+            const totalVersions = document.getElementById('totalVersions');
+            const storageProgress = document.getElementById('storageProgress');
+            const storageSub = document.getElementById('storageSub');
+
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const uploadQueue = document.getElementById('uploadQueue');
+
+            const megaverseList = document.getElementById('megaverseList');
+            const activityList = document.getElementById('activityList');
+
+            const versionModal = document.getElementById('versionModal');
+            const modalBody = document.getElementById('modalBody');
+            const modalFileName = document.getElementById('modalFileName');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastClose = document.getElementById('toastClose');
+
+            const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+            const quotaUsed = document.getElementById('quotaUsed');
+            const quotaProgress = document.getElementById('quotaProgress');
+
+            // ===== MOCK DATA =====
+            function generateMockData() {
+                const mockFiles = [
+                    { id: 'f1', name: 'profile.png', size: 245760, type: 'image/png', version: 42,
+                    uploaded: '2026-07-01T14:32:18', megaverse: 'personal' },
+                    { id: 'f2', name: 'report.pdf', size: 1048576, type: 'application/pdf', version: 3,
+                        uploaded: '2026-06-30T10:15:00', megaverse: 'work' },
+                    { id: 'f3', name: 'data.json', size: 51200, type: 'application/json', version: 7,
+                        uploaded: '2026-06-29T08:00:00', megaverse: 'personal' },
+                    { id: 'f4', name: 'presentation.pptx', size: 2097152, type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        version: 12, uploaded: '2026-06-28T16:20:00', megaverse: 'work' },
+                    { id: 'f5', name: 'backup.sql', size: 102400, type: 'text/plain', version: 5,
+                        uploaded: '2026-06-27T22:10:00', megaverse: 'archive' },
+                    { id: 'f6', name: 'photo.jpg', size: 524288, type: 'image/jpeg', version: 1,
+                        uploaded: '2026-06-26T12:00:00', megaverse: 'personal' },
+                    { id: 'f7', name: 'notes.txt', size: 4096, type: 'text/plain', version: 15,
+                        uploaded: '2026-06-25T09:30:00', megaverse: 'personal' },
+                ];
+
+                const mockMegaverses = [
+                    { id: 'm1', name: 'personal', description: 'Personal files', fileCount: 4, size: 825344 },
+                    { id: 'm2', name: 'work', description: 'Work projects', fileCount: 2, size: 3145728 },
+                    { id: 'm3', name: 'archive', description: 'Old backups', fileCount: 1, size: 102400 },
+                ];
+
+                const mockActivities = [
+                    { time: '2026-07-01T14:32:18', user: 'admin', action: 'uploaded', file: 'profile.png' },
+                    { time: '2026-07-01T14:30:00', user: 'admin', action: 'updated', file: 'report.pdf' },
+                    { time: '2026-07-01T12:00:00', user: 'admin', action: 'created', file: 'megaverse: work' },
+                    { time: '2026-06-30T10:15:00', user: 'admin', action: 'uploaded', file: 'report.pdf' },
+                    { time: '2026-06-30T08:00:00', user: 'admin', action: 'restored', file: 'data.json' },
+                ];
+
+                return { files: mockFiles, megaverses: mockMegaverses, activities: mockActivities };
+            }
+
+            function loadMockData() {
+                const data = generateMockData();
+                files = data.files;
+                megaverses = data.megaverses;
+                activities = data.activities;
+            }
+
+            // ===== RENDER FUNCTIONS =====
+            function getFileIcon(filename, mime) {
+                if (mime && mime.startsWith('image/')) return 'image';
+                if (mime === 'application/pdf') return 'pdf';
+                if (mime && mime.startsWith('video/')) return 'video';
+                if (filename.endsWith('.js') || filename.endsWith('.json') || filename.endsWith('.html') || filename
+                    .endsWith('.css')) return 'code';
+                return '';
+            }
+
+            function getFileIconClass(filename, mime) {
+                const type = getFileIcon(filename, mime);
+                return type ? `file-item__icon ${type}` : 'file-item__icon';
+            }
+
+            function getFileIconSymbol(filename, mime) {
+                const type = getFileIcon(filename, mime);
+                const icons = {
+                    image: 'fa-image',
+                    pdf: 'fa-file-pdf',
+                    video: 'fa-video',
+                    code: 'fa-code'
+                };
+                return icons[type] || 'fa-file';
+            }
+
+            function formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+                return (bytes / 1073741824).toFixed(1) + ' GB';
+            }
+
+            function formatDate(dateStr) {
+                const d = new Date(dateStr);
+                const now = new Date();
+                const diff = (now - d) / 1000;
+                if (diff < 60) return 'Just now';
+                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+                if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+                return d.toLocaleDateString();
+            }
+
+            function renderFileItem(file, showMegaverse = false) {
+                const iconClass = getFileIconClass(file.name, file.type);
+                const iconSymbol = getFileIconSymbol(file.name, file.type);
+                return `
+                    <div class="file-item" data-id="${file.id}">
+                        <div class="${iconClass}">
+                            <i class="fas ${iconSymbol}"></i>
+                        </div>
+                        <div class="file-item__info">
+                            <div class="file-item__name">${file.name}</div>
+                            <div class="file-item__meta">
+                                ${formatSize(file.size)} &middot; ${formatDate(file.uploaded)}
+                                <span class="version">v${file.version}</span>
+                                ${showMegaverse ? `&middot; <span style="color:var(--text-muted)">${file.megaverse}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="file-item__actions">
+                            <button class="download" title="Download"><i class="fas fa-download"></i></button>
+                            <button class="restore" title="Versions" data-id="${file.id}"><i class="fas fa-history"></i></button>
+                            <button class="delete" title="Delete" data-id="${file.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderFiles() {
+                const search = searchInput.value.toLowerCase().trim();
+                let filtered = files;
+                if (search) {
+                    filtered = files.filter(f => f.name.toLowerCase().includes(search));
+                }
+
+                // Recent (latest 3)
+                const recent = [...files].sort((a, b) => new Date(b.uploaded) - new Date(a.uploaded)).slice(0, 3);
+                recentFilesEl.innerHTML = recent.length ? recent.map(f => renderFileItem(f)).join('') :
+                    `<div class="empty-state"><i class="fas fa-inbox"></i><h3>No recent files</h3><p>Upload your first file to get started</p></div>`;
+
+                // All files
+                allFilesEl.innerHTML = filtered.length ? filtered.map(f => renderFileItem(f, true)).join('') :
+                    `<div class="empty-state"><i class="fas fa-inbox"></i><h3>No files found</h3><p>${search ? 'Try a different search term' : 'Upload your first file'}</p></div>`;
+
+                fileCountBadge.textContent = files.length;
+            }
+
+            function renderStats() {
+                const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+                const totalVersionsCount = files.reduce((sum, f) => sum + f.version, 0);
+                const quotaLimit = 10 * 1024 * 1024 * 1024; // 10 GB
+                const percent = Math.min((totalSize / quotaLimit) * 100, 100);
+
+                totalStorage.innerHTML = `${formatSize(totalSize)}`;
+                totalFiles.textContent = files.length;
+                totalMegaverses.textContent = megaverses.length;
+                totalVersions.textContent = totalVersionsCount;
+
+                storageProgress.style.width = `${percent}%`;
+                storageSub.textContent = `${percent.toFixed(1)}% of 10 GB used`;
+
+                quotaUsed.textContent = formatSize(totalSize);
+                quotaProgress.style.width = `${percent}%`;
+
+                megaverseCountBadge.textContent = megaverses.length;
+            }
+
+            function renderMegaverses() {
+                if (!megaverses.length) {
+                    megaverseList.innerHTML =
+                        `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-layer-group"></i><h3>No megaverses</h3><p>Create your first megaverse to organize files</p></div>`;
+                    return;
+                }
+                megaverseList.innerHTML = megaverses.map(m => `
+                    <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:16px;transition:var(--transition);">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <i class="fas fa-folder" style="color:var(--primary);font-size:20px;"></i>
+                            <strong style="font-size:15px;">${m.name}</strong>
+                        </div>
+                        <p style="color:var(--text-muted);font-size:12px;">${m.description || 'No description'}</p>
+                        <div style="display:flex;gap:12px;margin-top:8px;font-size:12px;color:var(--text-secondary);">
+                            <span><i class="fas fa-file"></i> ${m.fileCount} files</span>
+                            <span><i class="fas fa-database"></i> ${formatSize(m.size)}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function renderActivity() {
+                if (!activities.length) {
+                    activityList.innerHTML =
+                        `<div class="empty-state"><i class="fas fa-list"></i><h3>No activity yet</h3><p>Your actions will appear here</p></div>`;
+                    return;
+                }
+                activityList.innerHTML = activities.map(a => `
+                    <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-sm);">
+                        <i class="fas fa-circle" style="font-size:8px;color:var(--primary);"></i>
+                        <span style="font-size:12px;color:var(--text-muted);min-width:120px;">${formatDate(a.time)}</span>
+                        <span style="font-size:13px;"><strong>${a.user}</strong> ${a.action} <strong style="color:var(--primary);">${a.file}</strong></span>
+                    </div>
+                `).join('');
+            }
+
+            function renderVersionModal(fileId) {
+                const file = files.find(f => f.id === fileId);
+                if (!file) return;
+
+                modalFileName.textContent = file.name;
+                const versions = [];
+                for (let i = file.version; i >= Math.max(1, file.version - 10); i--) {
+                    const date = new Date(Date.now() - (file.version - i) * 3600000);
+                    versions.push({
+                        version: i,
+                        date: date.toISOString(),
+                        isCurrent: i === file.version
+                    });
+                }
+
+                modalBody.innerHTML = versions.map(v => `
+                    <div class="version-item">
+                        <div class="version-item__info">
+                            <div class="version-item__version">Version ${v.version} ${v.isCurrent ? '⭐' : ''}</div>
+                            <div class="version-item__date">${formatDate(v.date)}</div>
+                        </div>
+                        ${v.isCurrent ? '<span style="font-size:11px;color:var(--success);">Current</span>' : `<button class="btn-sm primary" data-version="${v.version}" data-file="${file.id}">Restore</button>`}
+                    </div>
+                `).join('');
+
+                // Restore button handlers
+                modalBody.querySelectorAll('[data-version]').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const ver = parseInt(this.dataset.version);
+                        const fid = this.dataset.file;
+                        showToast(`Restoring ${file.name} to version ${ver}...`, 'info');
+                        setTimeout(() => {
+                            const f = files.find(f => f.id === fid);
+                            if (f) {
+                                f.version = ver;
+                                renderFiles();
+                                renderStats();
+                                showToast(`✅ Restored ${f.name} to version ${ver}`, 'success');
+                                closeModal();
+                            }
+                        }, 800);
+                    });
+                });
+            }
+
+            // ===== MODAL =====
+            function openModal(fileId) {
+                currentFileId = fileId;
+                renderVersionModal(fileId);
+                versionModal.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal() {
+                versionModal.classList.remove('open');
+                document.body.style.overflow = '';
+            }
+
+            modalCloseBtn.addEventListener('click', closeModal);
+            versionModal.addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeModal();
+            });
+
+            // ===== TOAST =====
+            let toastTimeout;
+
+            function showToast(message, type = 'success') {
+                toast.className = 'toast visible ' + type;
+                toastMessage.textContent = message;
+                const icon = toast.querySelector('i');
+                icon.className = type === 'success' ? 'fas fa-check-circle' :
+                    type === 'error' ? 'fas fa-exclamation-circle' :
+                    'fas fa-info-circle';
+                clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toast.classList.remove('visible');
+                }, 4000);
+            }
+
+            toastClose.addEventListener('click', () => {
+                toast.classList.remove('visible');
+                clearTimeout(toastTimeout);
+            });
+
+            // ===== NAVIGATION =====
+            function navigateTo(view) {
+                // Hide all views
+                Object.values(views).forEach(v => v.style.display = 'none');
+
+                // Show target
+                if (views[view]) {
+                    views[view].style.display = 'block';
+                }
+
+                // Update nav
+                navItems.forEach(item => {
+                    item.classList.toggle('active', item.dataset.view === view);
+                });
+
+                // Update title
+                const titles = {
+                    dashboard: 'overview',
+                    files: 'all files',
+                    upload: 'upload',
+                    megaverses: 'megaverses',
+                    activity: 'activity log',
+                    settings: 'settings'
+                };
+                pageSubtitle.textContent = titles[view] || '';
+
+                currentView = view;
+
+                // Close sidebar on mobile
+                closeSidebar();
+
+                // Refresh data on certain views
+                if (view === 'dashboard' || view === 'files') {
+                    renderFiles();
+                    renderStats();
+                }
+                if (view === 'megaverses') renderMegaverses();
+                if (view === 'activity') renderActivity();
+            }
+
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const view = this.dataset.view;
+                    if (view) navigateTo(view);
+                });
+            });
+
+            // View buttons from content
+            document.querySelectorAll('[data-view]').forEach(el => {
+                el.addEventListener('click', function() {
+                    const view = this.dataset.view;
+                    if (view && views[view]) navigateTo(view);
+                });
+            });
+
+            // ===== SIDEBAR TOGGLE =====
+            function openSidebar() {
+                sidebar.classList.add('open');
+                sidebarOverlay.classList.add('open');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('open');
+            }
+
+            menuBtn.addEventListener('click', openSidebar);
+            sidebarOverlay.addEventListener('click', closeSidebar);
+
+            // ===== SEARCH =====
+            searchInput.addEventListener('input', function() {
+                if (currentView === 'dashboard' || currentView === 'files') {
+                    renderFiles();
+                }
+            });
+
+            // ===== REFRESH =====
+            refreshBtn.addEventListener('click', function() {
+                showToast('🔄 Refreshing...', 'info');
+                setTimeout(() => {
+                    renderFiles();
+                    renderStats();
+                    renderMegaverses();
+                    renderActivity();
+                    showToast('✅ Refreshed', 'success');
+                }, 500);
+            });
+
+            document.getElementById('refreshFilesBtn').addEventListener('click', function() {
+                renderFiles();
+                showToast('✅ Files refreshed', 'success');
+            });
+
+            // ===== UPLOAD =====
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length) handleFiles(files);
+            });
+
+            fileInput.addEventListener('change', function() {
+                if (this.files.length) {
+                    handleFiles(this.files);
+                    this.value = '';
+                }
+            });
+
+            function handleFiles(fileList) {
+                const uploads = Array.from(fileList);
+                uploadQueue.innerHTML = uploads.map(f => `
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:6px;">
+                        <i class="fas fa-file" style="color:var(--text-muted);"></i>
+                        <span style="flex:1;font-size:13px;">${f.name} (${formatSize(f.size)})</span>
+                        <div style="width:60px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+                            <div style="width:0%;height:100%;background:linear-gradient(90deg,var(--primary),var(--secondary));border-radius:2px;transition:width 0.5s;" class="upload-progress"></div>
+                        </div>
+                        <span style="font-size:11px;color:var(--text-muted);" class="upload-status">Uploading...</span>
+                    </div>
+                `).join('');
+
+                // Simulate uploads
+                const progressBars = uploadQueue.querySelectorAll('.upload-progress');
+                const statuses = uploadQueue.querySelectorAll('.upload-status');
+
+                uploads.forEach((file, index) => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += Math.random() * 15 + 5;
+                        if (progress >= 100) {
+                            progress = 100;
+                            clearInterval(interval);
+                            statuses[index].textContent = '✅ Done';
+                            statuses[index].style.color = 'var(--success)';
+                            // Add file to list
+                            const newFile = {
+                                id: 'f' + Date.now() + index,
+                                name: file.name,
+                                size: file.size,
+                                type: file.type || 'application/octet-stream',
+                                version: 1,
+                                uploaded: new Date().toISOString(),
+                                megaverse: 'personal'
+                            };
+                            files.push(newFile);
+                            renderFiles();
+                            renderStats();
+                            showToast(`✅ Uploaded ${file.name}`, 'success');
+                        }
+                        progressBars[index].style.width = Math.min(progress, 100) + '%';
+                    }, 100);
+
+                    // Cleanup after done
+                    setTimeout(() => {
+                        setTimeout(() => {
+                            const parent = progressBars[index].closest('div');
+                            if (parent && progress >= 100) {
+                                parent.style.opacity = '0.4';
+                            }
+                        }, 2000);
+                    }, 5000);
+                });
+            }
+
+            // ===== MEGAVERSE CREATE =====
+            document.getElementById('createMegaverseBtn').addEventListener('click', function() {
+                const name = prompt('Enter megaverse name:');
+                if (name && name.trim()) {
+                    const newMega = {
+                        id: 'm' + Date.now(),
+                        name: name.trim(),
+                        description: 'New megaverse',
+                        fileCount: 0,
+                        size: 0
+                    };
+                    megaverses.push(newMega);
+                    renderMegaverses();
+                    renderStats();
+                    showToast(`✅ Created megaverse: ${name.trim()}`, 'success');
+                }
+            });
+
+            // ===== LOGOUT =====
+            logoutBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to logout?')) {
+                    showToast('👋 Logging out...', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/auth.html#login';
+                    }, 500);
+                }
+            });
+
+            // ===== API KEY =====
+            document.getElementById('copyApiKeyBtn').addEventListener('click', function() {
+                const text = apiKeyDisplay.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('📋 API key copied!', 'success');
+                }).catch(() => {
+                    // Fallback
+                    const range = document.createRange();
+                    const selection = window.getSelection();
+                    range.selectNode(apiKeyDisplay);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    document.execCommand('copy');
+                    showToast('📋 API key copied!', 'success');
+                });
+            });
+
+            document.getElementById('regenerateApiKeyBtn').addEventListener('click', function() {
+                if (confirm('Regenerate API key? This will invalidate the old one.')) {
+                    const newKey = 'als_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36)
+                        .substring(2, 15);
+                    apiKeyDisplay.textContent = newKey;
+                    showToast('🔄 API key regenerated!', 'success');
+                }
+            });
+
+            // ===== DELETE ALL DATA =====
+            document.getElementById('deleteAllDataBtn').addEventListener('click', function() {
+                if (confirm('⚠️ WARNING: This will permanently delete ALL your data. Are you sure?')) {
+                    if (confirm('This is irreversible. Type "DELETE" to confirm:')) {
+                        const typed = prompt('Type "DELETE" to confirm:');
+                        if (typed === 'DELETE') {
+                            files = [];
+                            megaverses = [];
+                            activities = [];
+                            renderFiles();
+                            renderStats();
+                            renderMegaverses();
+                            renderActivity();
+                            showToast('🗑️ All data deleted', 'error');
+                        }
+                    }
+                }
+            });
+
+            // ===== ACTIVITY CLEAR =====
+            document.getElementById('clearActivityBtn').addEventListener('click', function() {
+                if (confirm('Clear all activity logs?')) {
+                    activities = [];
+                    renderActivity();
+                    showToast('🧹 Activity logs cleared', 'info');
+                }
+            });
+
+            // ===== THEME TOGGLE =====
+            document.getElementById('themeToggle').addEventListener('click', function() {
+                document.body.style.background = document.body.style.background === 'rgb(10, 10, 15)' ? '#f5f5f5' :
+                    '#0a0a0f';
+                showToast('🎨 Theme toggled', 'info');
+            });
+
+            // ===== NOTIFICATION =====
+            document.getElementById('notifBtn').addEventListener('click', function() {
+                showToast('🔔 No new notifications', 'info');
+            });
+
+            // ===== EVENT DELEGATION =====
+            document.addEventListener('click', function(e) {
+                // Version/restore button
+                if (e.target.closest('.restore')) {
+                    const btn = e.target.closest('.restore');
+                    const id = btn.dataset.id;
+                    if (id) openModal(id);
+                }
+
+                // Delete button
+                if (e.target.closest('.delete')) {
+                    const btn = e.target.closest('.delete');
+                    const id = btn.dataset.id;
+                    if (id && confirm('Delete this file?')) {
+                        const index = files.findIndex(f => f.id === id);
+                        if (index !== -1) {
+                            const name = files[index].name;
+                            files.splice(index, 1);
+                            renderFiles();
+                            renderStats();
+                            showToast(`🗑️ Deleted ${name}`, 'error');
+                        }
+                    }
+                }
+
+                // Download button
+                if (e.target.closest('.download')) {
+                    const btn = e.target.closest('.download');
+                    const id = btn.closest('.file-item')?.dataset.id;
+                    if (id) {
+                        const file = files.find(f => f.id === id);
+                        if (file) {
+                            showToast(`⬇️ Downloading ${file.name}...`, 'info');
+                        }
+                    }
+                }
+            });
+
+            // ===== KEYBOARD SHORTCUTS =====
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+K or Cmd+K -> focus search
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    searchInput.focus();
+                }
+
+                // Escape -> close sidebar
+                if (e.key === 'Escape') {
+                    closeSidebar();
+                }
+
+                // 1-6 -> navigate views
+                if (e.key >= '1' && e.key <= '6') {
+                    const views = ['dashboard', 'files', 'upload', 'megaverses', 'activity', 'settings'];
+                    const idx = parseInt(e.key) - 1;
+                    if (views[idx]) navigateTo(views[idx]);
+                }
+            });
+
+            // ===== INIT =====
+            loadMockData();
+            renderFiles();
+            renderStats();
+            renderMegaverses();
+            renderActivity();
+            navigateTo('dashboard');
+
+            console.log('📁 A.L.S Dashboard loaded');
+            console.log('🔍 Search: Ctrl+K');
+            console.log('🎯 Navigate: 1-6');
+            console.log('📊 ' + files.length + ' files, ' + megaverses.length + ' megaverses');
+
+        })();
+    </script>
+
+</body>
+</html>

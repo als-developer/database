@@ -1335,4 +1335,334 @@ app.put('/api/admin/user/:id/role', verifySession, verifyAdmin, async (req, res)
             action: 'update_role',
             details: {
                 target_user: user.email,
-               
+                new_role: role
+            }
+        });
+
+        return res.json({
+            success: true,
+            user: user,
+            message: 'Role updated'
+        });
+
+    } catch (error) {
+        console.error('Update role error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to update role'
+        });
+    }
+});
+
+/**
+ * DELETE /api/admin/user/:id — Delete user (admin only)
+ */
+app.delete('/api/admin/user/:id', verifySession, verifyAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await FileDB.getUserById(id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        if (user.role === 'admin' && id === req.user.id) {
+            return res.status(400).json({
+                success: false,
+                error: 'Cannot delete yourself'
+            });
+        }
+
+        if (user.role === 'admin') {
+            const admins = await FileDB.getAdminUsers();
+            if (admins.length <= 1) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Cannot delete the only admin'
+                });
+            }
+        }
+
+        await FileDB.deleteUser(id);
+
+        await FileDB.logActivity({
+            user_id: req.user.id,
+            user_email: req.user.email,
+            action: 'delete_user',
+            details: {
+                target_user: user.email
+            }
+        });
+
+        return res.json({
+            success: true,
+            message: 'User deleted'
+        });
+
+    } catch (error) {
+        console.error('Delete user error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to delete user'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/stats — System statistics (admin only)
+ */
+app.get('/api/admin/stats', verifySession, verifyAdmin, async (req, res) => {
+    try {
+        const stats = await FileDB.getSystemStats();
+
+        return res.json({
+            success: true,
+            stats: stats
+        });
+
+    } catch (error) {
+        console.error('System stats error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get system stats'
+        });
+    }
+});
+
+/**
+ * GET /api/admin/activity — All activity logs (admin only)
+ */
+app.get('/api/admin/activity', verifySession, verifyAdmin, async (req, res) => {
+    const { limit, offset, user, action } = req.query;
+
+    try {
+        const activities = await FileDB.getAllActivity({
+            limit: parseInt(limit) || 100,
+            offset: parseInt(offset) || 0,
+            user_id: user,
+            action: action
+        });
+
+        return res.json({
+            success: true,
+            activities: activities
+        });
+
+    } catch (error) {
+        console.error('Admin activity error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get activity'
+        });
+    }
+});
+
+/**
+ * DELETE /api/admin/activity — Clear activity logs (admin only)
+ */
+app.delete('/api/admin/activity', verifySession, verifyAdmin, async (req, res) => {
+    const { older_than } = req.query;
+
+    try {
+        const days = older_than ? parseInt(older_than) : 30;
+        await FileDB.clearActivityLogs(days);
+
+        await FileDB.logActivity({
+            user_id: req.user.id,
+            user_email: req.user.email,
+            action: 'clear_activity',
+            details: { older_than_days: days }
+        });
+
+        return res.json({
+            success: true,
+            message: `Activity logs older than ${days} days cleared`
+        });
+
+    } catch (error) {
+        console.error('Clear activity error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to clear activity'
+        });
+    }
+});
+
+// ============================================================
+// SYSTEM ROUTES
+// ============================================================
+
+/**
+ * GET /api/system/config — Get system config
+ */
+app.get('/api/system/config', verifySession, verifyAdmin, async (req, res) => {
+    try {
+        const config = await FileDB.getSystemConfig();
+
+        return res.json({
+            success: true,
+            config: config
+        });
+
+    } catch (error) {
+        console.error('Get config error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get config'
+        });
+    }
+});
+
+/**
+ * PUT /api/system/config — Update system config (admin only)
+ */
+app.put('/api/system/config', verifySession, verifyAdmin, async (req, res) => {
+    const updates = req.body;
+
+    try {
+        const config = await FileDB.updateSystemConfig(updates);
+
+        await FileDB.logActivity({
+            user_id: req.user.id,
+            user_email: req.user.email,
+            action: 'update_config',
+            details: { updates: Object.keys(updates) }
+        });
+
+        return res.json({
+            success: true,
+            config: config,
+            message: 'Configuration updated'
+        });
+
+    } catch (error) {
+        console.error('Update config error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to update config'
+        });
+    }
+});
+
+// ============================================================
+// ERROR HANDLING
+// ============================================================
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        error: 'Route not found'
+    });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'FILE_TOO_LARGE') {
+            return res.status(413).json({
+                success: false,
+                error: 'File too large. Max size: 100 MB'
+            });
+        }
+        if (err.code === 'FILE_TYPE_NOT_ALLOWED') {
+            return res.status(415).json({
+                success: false,
+                error: 'File type not allowed'
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            error: err.message
+        });
+    }
+
+    res.status(500).json({
+        success: false,
+        error: err.message || 'Internal server error'
+    });
+});
+
+// ============================================================
+// START SERVER
+// ============================================================
+
+// Ensure required directories exist
+const requiredDirs = [
+    path.join(__dirname, 'database'),
+    path.join(__dirname, 'database/system'),
+    path.join(__dirname, 'database/users'),
+    path.join(__dirname, 'database/megaverses'),
+    path.join(__dirname, 'systemdata'),
+    path.join(__dirname, 'logs'),
+    UPLOAD_DIR
+];
+
+requiredDirs.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
+
+// Initialize database files if they don't exist
+async function initSystem() {
+    try {
+        await FileDB.ensureSystemFiles();
+        console.log('✅ System files initialized');
+    } catch (error) {
+        console.error('⚠️ Failed to initialize system files:', error.message);
+    }
+}
+
+// Start server
+async function startServer() {
+    await initSystem();
+
+    app.listen(PORT, HOST, () => {
+        console.log('========================================');
+        console.log('✨ A.L.S — Advanced Local Storage');
+        console.log('========================================');
+        console.log(`🚀 Server running at:`);
+        console.log(`   http://${HOST}:${PORT}`);
+        console.log(`   http://localhost:${PORT}`);
+        console.log(`   https://data.ailifesolution.com`);
+        console.log('----------------------------------------');
+        console.log(`📁 Upload directory: ${UPLOAD_DIR}`);
+        console.log(`💾 Database: JSON files (file.js)`);
+        console.log(`📧 Email: ${API.getEmailStatus() ? 'Configured' : 'Not configured'}`);
+        console.log('========================================');
+        console.log('📖 API Documentation: /');
+        console.log('🔐 Login: /auth.html');
+        console.log('📊 Dashboard: /user.html');
+        console.log('👑 Admin: /admin.html');
+        console.log('========================================');
+        console.log('⚡ Press Ctrl+C to stop');
+    });
+}
+
+// Handle graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('\n🛑 Received SIGTERM, shutting down...');
+    process.exit(0);
+});
+
+// Start the server
+startServer().catch(error => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+});
+
+// ============================================================
+// EXPORTS (for testing)
+// ============================================================
+module.exports = app;

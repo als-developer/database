@@ -1,0 +1,51 @@
+{
+  "activities": [
+    {
+      "id": "a_001",
+      "timestamp": "2026-07-01T14:30:25.000Z",
+      "user_id": "u_admin_001",
+      "user_email": "citytechuk@gmail.com",
+      "action": "login",
+      "details": {
+        "method": "otp",
+        "ip": "45.91.169.201",
+        "user_agent": "Mozilla/5.0"
+      }
+    },
+    {
+      "id": "a_002",
+      "timestamp": "2026-07-01T14:32:18.000Z",
+      "user_id": "u_admin_001",
+      "user_email": "citytechuk@gmail.com",
+      "action": "upload",
+      "details": {
+        "megaverse": "personal",
+        "filename": "profile.png",
+        "size": 245760,
+        "mime_type": "image/png"
+      }
+    },
+    {
+      "id": "a_003",
+      "timestamp": "2026-07-01T14:35:00.000Z",
+      "user_id": "u_admin_001",
+      "user_email": "citytechuk@gmail.com",
+      "action": "create_megaverse",
+      "details": {
+        "name": "work",
+        "description": "Work projects and collaborations"
+      }
+    },
+    {
+      "id": "a_004",
+      "timestamp": "2026-07-01T14:40:00.000Z",
+      "user_id": "u_admin_001",
+      "user_email": "citytechuk@gmail.com",
+      "action": "create_megaverse",
+      "details": {
+        "name": "archive",
+        "description": "Archived files and old backups"
+      }
+    }
+  ]
+}
